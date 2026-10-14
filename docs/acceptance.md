@@ -138,3 +138,32 @@ Installed bytes match artifacts; the existing administrator login, new admin
 panel, disabled email state, public HTTPS health and unchanged signing keys were
 verified after upgrade. No real SMTP credentials/delivery or public mail service
 was configured. Existing production/release gates remain unchanged.
+
+
+## Published optional-email preview — 2026-10-14
+
+[preview-20261014.2](https://github.com/fahimc/myaccounts/releases/tag/preview-20261014.2)
+is published as an evaluation prerelease from source
+`4448540192c9d8b216de74ddb7bc91f3031a710b`.
+[Actions 38619898733](https://github.com/fahimc/myaccounts/actions/runs/38619898733)
+completed successfully: Windows build/native/UI/integration tests, separate
+no-email administrator browser CRUD/reset, dependency analysis, SBOM and the
+independent uploaded checksum/publication job all passed.
+
+Both uploaded executables were also downloaded independently and matched the
+published `SHA256SUMS.txt`; the main EXE reports `preview-20261014.2`. All eight
+release assets are present, including valid CycloneDX SBOM, licenses and acceptance
+metadata. Exact release hashes:
+
+- `MyAccounts-windows-amd64.exe` (132874752 bytes):
+  `8626e7b6ec628d46d57a35bd6adee8f468256c890e0a4e0e79b06fbcbd49ae33`
+- `MyAccounts-Mail-windows-amd64.exe` (12136448 bytes):
+  `fe720d6d5fc1ec1f4ce734607cde3641e693eb80df006d0946d140b46cecf97e`
+
+README includes eight reviewed synthetic screenshots, custom FileBrowser repository,
+Drive/Office branch/release links, detailed configuration and generic OIDC/Gitea/
+Node/Python guidance. Screenshot capture passed actual disposable custom FileBrowser
+browser SSO. This publication does not configure real SMTP/public shared email,
+close pending production gates, or change the existing local live installation.
+The release asset's acceptance file records its build-time state; this ledger
+records the subsequent successful publication and independent download checks.

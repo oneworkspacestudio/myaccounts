@@ -219,3 +219,47 @@ remain applicable; frontend unchanged in this publication turn. Documentation
 local links resolved. Release notes and deployment email text updated. Final
 GitHub CI/release confirmation must be recorded after publishing; do not infer it
 from this preparation note. Live optional-email runtime remains unchanged.
+
+
+## Publication confirmed: preview-20261014.2
+
+User-requested push/release completed. Source commit
+`4448540192c9d8b216de74ddb7bc91f3031a710b` and annotated tag
+`preview-20261014.2` pushed atomically to private fahimc/myaccounts. Main push run
+was superseded/cancelled by the tag through existing concurrency; tagged
+[CI 38619898733](https://github.com/fahimc/myaccounts/actions/runs/38619898733)
+succeeded Windows/audit/release. All native/backend/frontend/browser/OIDC/MFA/
+passkey/consent/backup/TLS-relay recovery checks and the separate no-email admin
+CRUD/reset browser fixture passed. SBOM/uploaded SHA256 verification passed.
+Cold Windows compilation, SBOM generation and cache saving took several minutes
+each, consistent with the earlier release; no failures or skipped gates.
+
+Published prerelease (not draft):
+https://github.com/fahimc/myaccounts/releases/tag/preview-20261014.2
+Eight assets: main/mail EXEs, SHA256SUMS, SBOM, LICENSE, NOTICE,
+KNOWN-LIMITATIONS and release-acceptance. Independent download under ignored
+`dist/releases/preview-20261014.2` verified both hashes, nonempty notices, valid
+CycloneDX JSON and main executable version. Exact published/CI bytes:
+- Main132874752 bytes, SHA256
+  8626e7b6ec628d46d57a35bd6adee8f468256c890e0a4e0e79b06fbcbd49ae33
+- Mail12136448 bytes, SHA256
+  fe720d6d5fc1ec1f4ce734607cde3641e693eb80df006d0946d140b46cecf97e
+
+Draft-by-tag REST lookup returned404 before publication; gh release view/download
+resolved it correctly through draft metadata. This was not a missing artifact or
+verification failure. Published canonical URL and all job conclusions confirmed.
+Local independently built tagged files have different build bytes; do not confuse
+their hashes with the downloaded CI artifacts. Local tagged main also passed
+fresh real Chrome no-email admin CRUD/reset and native encrypted restore smoke.
+
+No published release asset was overwritten. Full-production gates remain open;
+SMTP/public mail activation/service/reboot/cross-machine claims unchanged. This
+publication did not replace the installed optional-email-admin dev runtime or
+modify either live FileBrowser. Runtime details in the latest implementation
+section still apply. Final evidence-only follow-up commit uses [skip ci] to avoid
+rebuilding unchanged executable code. Source tag remains immutable at4448540.
+
+Only synthetic disposable readme fixtures created during this task were cleaned
+from F tests after checking resolved paths and process ownership; no user data
+removed. H holds release downloads/builds. README and custom FileBrowser guide
+are on GitHub; companion FileBrowser itself was read only and not pushed.

@@ -50,7 +50,7 @@
     {
       "name": "GitHub authorization repository CI release",
       "passed": true,
-      "evidence": "Private source pushed; preview-20261014.1 CI 38590999214 Windows/audit/release all succeeded, published evaluation preview; downloaded/installed SHA256 78957576b48be9b142822fe35d769dd69c0eda66f703eca9fe8e46c8fc7c2b59 verified. Full v0.1.0 remains blocked by other gates."
+      "evidence": "User authorized publication. preview-20261014.2 from 4448540192c9d8b216de74ddb7bc91f3031a710b published; CI 38619898733 Windows/audit/release all succeeded, including no-email admin browser CRUD/reset. Both downloaded executable hashes/version and SBOM verified. Main SHA256 8626e7b6ec628d46d57a35bd6adee8f468256c890e0a4e0e79b06fbcbd49ae33; mail SHA256 fe720d6d5fc1ec1f4ce734607cde3641e693eb80df006d0946d140b46cecf97e. Full v0.1.0 remains blocked by other gates."
     },
     {
       "name": "shared email public deployment and onboarding",
