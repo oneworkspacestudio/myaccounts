@@ -3,8 +3,16 @@ import {randomBytes} from 'node:crypto';
 import {createServer} from 'node:net';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
+import {readFile} from 'node:fs/promises';
+import {request as httpsRequest} from 'node:https';
 const origin=process.env.MYACCOUNTS_TEST_ISSUER,password=process.env.MYACCOUNTS_TEST_PASSWORD,root=process.env.MYACCOUNTS_FIXTURE;
 assert(origin==='http://localhost:18787'&&password&&root,'Use only the disposable native smoke installation');
+const relayFixture=process.env.MYACCOUNTS_RELAY_FIXTURE?JSON.parse(await readFile(process.env.MYACCOUNTS_RELAY_FIXTURE,'utf8')):null;
+const relayCA=relayFixture?await readFile(relayFixture.ca):null;
+async function received(){
+ if(!relayFixture)return messages;
+ return new Promise((resolve,reject)=>{const r=httpsRequest(relayFixture.endpoint+'/fixture/messages',{ca:relayCA,headers:{Authorization:'Bearer '+relayFixture.control}},res=>{let body='';res.on('data',chunk=>body+=chunk);res.on('end',()=>{try{assert.equal(res.statusCode,200);resolve(JSON.parse(body).map(m=>m.Text))}catch(e){reject(e)}})});r.on('error',reject);r.end()});
+}
 const messages=[],sockets=new Set();
 // Test-only loopback mail sink. Production credentials/TLS are never changed.
 const smtp=createServer(socket=>{
@@ -24,13 +32,14 @@ const admin=client(),suffix=randomBytes(6).toString('hex'),name='mail-'+suffix,e
 let db;
 try{
  assert.equal((await admin('/api/login',{organization:'built-in',username:'admin@example.com',password,application:'app-built-in',type:'login',signinMethod:'Password'})).status,'ok');
- const provider={owner:'admin',name,displayName:'Isolated mail sink',category:'Email',type:'SMTP',host:'localhost',port:19997,sslMode:'Disable',clientId:'',clientSecret:'',clientId2:'fixture@example.com',clientSecret2:'Fixture',title:'Verification',content:'Your fixture code is %s'};
- assert.equal((await admin('/api/add-provider',provider)).status,'ok');
+ const provider=relayFixture?(await admin('/api/get-provider?id=admin/myaccounts-email')).data:{owner:'admin',name,displayName:'Isolated mail sink',category:'Email',type:'SMTP',host:'localhost',port:19997,sslMode:'Disable',clientId:'',clientSecret:'',clientId2:'fixture@example.com',clientSecret2:'Fixture',title:'Verification',content:'Your fixture code is %s'};
+ if(!relayFixture)assert.equal((await admin('/api/add-provider',provider)).status,'ok');
+ else assert.equal(provider.type,'MyAccounts Relay');
  const template=(await admin('/api/get-application?id=admin/myaccounts')).data;
- const app={...template,name,clientId:name,clientSecret:randomBytes(32).toString('hex'),enableSignUp:true,disableSelfSignup:false,codeResendTimeout:1,providers:[{owner:'admin',name,canSignUp:true,canSignIn:true,canUnlink:false,rule:'All'}],signupItems:template.signupItems.map(item=>({...item,visible:['Username','Display name','Password','Confirm password','Email'].includes(item.name),required:['Username','Display name','Password','Email'].includes(item.name)})),signinItems:template.signinItems.map(item=>item.name==='Forgot password?'?{...item,visible:true}:item)};
+ const app={...template,name,clientId:name,clientSecret:randomBytes(32).toString('hex'),enableSignUp:true,disableSelfSignup:false,codeResendTimeout:1,providers:[{owner:'admin',name:provider.name,canSignUp:true,canSignIn:true,canUnlink:false,rule:'All'}],signupItems:template.signupItems.map(item=>({...item,visible:['Username','Display name','Password','Confirm password','Email'].includes(item.name),required:['Username','Display name','Password','Email'].includes(item.name)})),signinItems:template.signinItems.map(item=>item.name==='Forgot password?'?{...item,visible:true}:item)};
  assert.equal((await admin('/api/add-application',app)).status,'ok');
  const anonymous=client();
- async function send(api,method){const before=messages.length;const result=await api('/api/send-verification-code',{dest:email,type:'email',method,captchaType:'none',applicationId:'admin/'+name},true);assert.equal(result.status,'ok','Fixture email send failed');assert.equal(messages.length,before+1);const match=messages.at(-1).match(/Your fixture code is\s*(\d{6})/);assert(match,'Fixture did not receive code');return match[1];}
+ async function send(api,method){const before=(await received()).length;const result=await api('/api/send-verification-code',{dest:email,type:'email',method,captchaType:'none',applicationId:'admin/'+name},true);assert.equal(result.status,'ok','Fixture email send failed');const delivered=await received();assert.equal(delivered.length,before+1);const match=delivered.at(-1).match(/\b(\d{6})\b/);assert(match,'Fixture did not receive code');return match[1];}
  const registrationCode=await send(anonymous,'signup');
  const signup={organization:'myaccounts',application:name,username:name,name:'Mail Test',email,password:initial,emailCode:registrationCode,captchaType:'none'};
  assert.equal((await anonymous('/api/signup',{...signup,emailCode:'invalid'})).status,'error','Invalid signup code accepted');
@@ -51,5 +60,5 @@ try{
  await new Promise(r=>setTimeout(r,1100));const delayed=client(),delayedCode=await send(delayed,'forget');assert.equal((await delayed('/api/verify-code',{...verify,code:delayedCode})).status,'ok');
  db.prepare('UPDATE myaccounts_reset_grant SET expires=? WHERE user_id=?').run(946684800,'myaccounts/'+name);
  assert.equal((await delayed('/api/set-password',{...reset,code:delayedCode,newPassword:initial},true)).status,'error','Verified recovery session never expired');
- console.log('PASS: fixture SMTP verified signup, normal account, atomic concurrent email-code/reset consumption, identity binding, old-password refusal and code/grant expiry');
+ console.log('PASS: '+(relayFixture?'TLS shared relay':'fixture SMTP')+' verified signup, normal account, atomic concurrent email-code/reset consumption, identity binding, old-password refusal and code/grant expiry');
 }finally{db?.close();for(const socket of sockets)socket.destroy();await new Promise(resolve=>smtp.close(resolve));}

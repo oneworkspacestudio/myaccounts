@@ -15,9 +15,11 @@
 package object
 
 import (
+	"context"
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"github.com/casdoor/casdoor/internal/portable"
 	"math"
 	"math/big"
 	"net/url"
@@ -150,7 +152,18 @@ func SendVerificationCodeToEmail(organization *Organization, user *User, provide
 		return err
 	}
 
-	err = SendEmail(provider, title, content, []string{dest}, sender)
+	if provider.Type == "MyAccounts Relay" {
+		if provider.GetId() != "admin/myaccounts-email" {
+			return errors.New("shared email is managed by the server administrator")
+		}
+		purpose := "verification"
+		if method == "forget" {
+			purpose = "password-reset"
+		}
+		err = portable.SendSharedEmail(context.Background(), ".", dest, purpose, code)
+	} else {
+		err = SendEmail(provider, title, content, []string{dest}, sender)
+	}
 	if err != nil {
 		return err
 	}

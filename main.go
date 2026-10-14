@@ -197,6 +197,12 @@ func entry() error {
 	if len(args) > 0 && args[0] == "service" {
 		return controlService(exe, *dir, args[1:])
 	}
+	if len(args) > 0 && args[0] == "email-setup" {
+		if len(args) != 1 {
+			return errors.New("usage: -data DATA_DIRECTORY email-setup")
+		}
+		return portable.SetupEmail(context.Background(), *dir, openBrowser)
+	}
 	ok, e := lock.TryLock()
 	if e != nil {
 		return e

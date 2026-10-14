@@ -26,6 +26,8 @@ conf/app.conf
 conf/ai_providers.json
 coverage.out
 data-location.json
+mail-data-location.json
+mail-data/
 web-old/
 deployment/
 manifests/

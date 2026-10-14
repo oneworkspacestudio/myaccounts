@@ -13,6 +13,7 @@ import (
 )
 
 type Config struct {
+	SharedEmail             bool   `json:"sharedEmail,omitempty"`
 	InstallServiceRequested bool   `json:"installServiceRequested,omitempty"`
 	BackupHours             int    `json:"backupHours,omitempty"`
 	Version                 int    `json:"version"`

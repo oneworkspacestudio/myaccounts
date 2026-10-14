@@ -71,10 +71,10 @@ func Backup(dir, output, password string) error {
 		if rel == ".owner-sid" || strings.HasSuffix(rel, ".lock") {
 			return nil
 		}
-		if filepath.ToSlash(rel) == "secrets/control.dpapi" || filepath.ToSlash(rel) == "secrets/setup-url.dpapi" || filepath.ToSlash(rel) == "secrets/backup-passphrase.dpapi" || filepath.ToSlash(rel) == "secrets/migration-key.dpapi" {
+		if filepath.ToSlash(rel) == "secrets/control.dpapi" || filepath.ToSlash(rel) == "secrets/setup-url.dpapi" || filepath.ToSlash(rel) == "secrets/email-setup-url.dpapi" || filepath.ToSlash(rel) == "secrets/backup-passphrase.dpapi" || filepath.ToSlash(rel) == "secrets/migration-key.dpapi" {
 			return nil
 		}
-		if filepath.ToSlash(rel) == "secrets/tunnel.dpapi" {
+		if filepath.ToSlash(rel) == "secrets/tunnel.dpapi" || filepath.ToSlash(rel) == "secrets/email-relay.dpapi" {
 			b, e := os.ReadFile(path)
 			if e != nil {
 				return e
@@ -83,7 +83,7 @@ func Backup(dir, output, password string) error {
 			if e != nil {
 				return e
 			}
-			w, e := z.Create("secrets/tunnel.portable")
+			w, e := z.Create(strings.TrimSuffix(filepath.ToSlash(rel), ".dpapi") + ".portable")
 			if e != nil {
 				return e
 			}
@@ -216,16 +216,18 @@ func Restore(input, dir, password string) error {
 	if e = CheckDatabase(filepath.Join(stage, "users.db")); e != nil {
 		return e
 	}
-	if b, e := os.ReadFile(filepath.Join(stage, "secrets", "tunnel.portable")); e == nil {
-		protected, e := Protect(b)
-		if e != nil {
-			return e
-		}
-		if e = AtomicWrite(filepath.Join(stage, "secrets", "tunnel.dpapi"), protected); e != nil {
-			return e
-		}
-		if e = os.Remove(filepath.Join(stage, "secrets", "tunnel.portable")); e != nil {
-			return e
+	for _, name := range []string{"tunnel", "email-relay"} {
+		if b, e := os.ReadFile(filepath.Join(stage, "secrets", name+".portable")); e == nil {
+			protected, e := Protect(b)
+			if e != nil {
+				return e
+			}
+			if e = AtomicWrite(filepath.Join(stage, "secrets", name+".dpapi"), protected); e != nil {
+				return e
+			}
+			if e = os.Remove(filepath.Join(stage, "secrets", name+".portable")); e != nil {
+				return e
+			}
 		}
 	}
 	return os.Rename(stage, dir)

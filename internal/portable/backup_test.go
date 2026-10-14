@@ -71,6 +71,8 @@ func TestEncryptedBackupRestore(t *testing.T) {
 	if protected, e := Protect([]byte("test-backup-tunnel-token")); e == nil {
 		os.Mkdir(filepath.Join(d, "secrets"), 0700)
 		os.WriteFile(filepath.Join(d, "secrets", "tunnel.dpapi"), protected, 0600)
+		emailSecret, _ := Protect([]byte("synthetic-email-credential"))
+		os.WriteFile(filepath.Join(d, "secrets", "email-relay.dpapi"), emailSecret, 0600)
 	}
 	backup := filepath.Join(root, "backup.age")
 	password := "long portable test passphrase"
@@ -86,6 +88,15 @@ func TestEncryptedBackupRestore(t *testing.T) {
 	}
 	if e := Restore(backup, dest, password); e != nil {
 		t.Fatal(e)
+	}
+	if b, e := os.ReadFile(filepath.Join(dest, "secrets", "email-relay.dpapi")); e == nil {
+		plain, e := Unprotect(b)
+		if e != nil || string(plain) != "synthetic-email-credential" {
+			t.Fatal("restored email credential could not be decrypted")
+		}
+		if _, e = os.Stat(filepath.Join(dest, "secrets", "email-relay.portable")); !os.IsNotExist(e) {
+			t.Fatal("portable plaintext email credential left after restore")
+		}
 	}
 	b, e := os.ReadFile(filepath.Join(dest, "users.db"))
 	if e != nil || string(b) != string(original) {

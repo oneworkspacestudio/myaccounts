@@ -16,7 +16,10 @@
 
 package object
 
-import "github.com/casdoor/casdoor/email"
+import (
+	"errors"
+	"github.com/casdoor/casdoor/email"
+)
 
 // TestSmtpServer Test the SMTP server
 func TestSmtpServer(provider *Provider) error {
@@ -36,6 +39,9 @@ func TestSmtpServer(provider *Provider) error {
 }
 
 func SendEmail(provider *Provider, title string, content string, dest []string, sender string) error {
+	if provider.Type == "MyAccounts Relay" {
+		return errors.New("shared email supports only verification and password-reset codes; configure your own provider for other messages")
+	}
 	if provider.Type != "Resend" && provider.Type != "Custom HTTP Email" {
 		if err := checkTenantProviderHost(provider, provider.Host); err != nil {
 			return err

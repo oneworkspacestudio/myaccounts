@@ -78,3 +78,63 @@ Password recovery hardening now persists an expiring user-bound reset grant in S
 That exact executable is running from protected F:/MyAccounts/install/bin/MyAccounts.exe. Startup, public HTTPS/discovery, signing-key preservation and both real live FileBrowser/saved-account browser flows passed again after installation. Source/build artifacts remain on H:; no project data moved to C:. Desktop/mobile final sign-in layouts reviewed with visible logo/header/passkey tabs, no clipping. Existing normal-user data and client registration identifiers are preserved.
 
 Release acceptance in the asset records its build-time state; this ledger records subsequent successful publication/install. It is a development preview, not v0.1.0 approval. Real SMTP delivery/TLS, independent clean host, service/reboot, cross-machine restore, full threat and license review remain pending. No service installation/elevation/reboot performed. Detailed log viewer and opt-in discovery remain incomplete.
+
+
+## Shared email continuation â€” local build, 2026-10-14
+
+Normal installers now verify their administrator email without entering SMTP
+settings. A separate native shared service has a one-time operator wizard for
+Gmail/custom encrypted SMTP and dedicated Cloudflare/manual HTTPS. Existing
+installations can connect from Server and recovery. See [shared email](shared-email.md).
+
+Verified: native relay/operator/portable/credential/root tests, static analysis,
+frontend build, desktop/mobile wizard fixtures and visual review. Full native
+regression passed OIDC/PKCE/signatures/rotation, MFA/recovery, operations/backups,
+inherited group policy, sessions, actual Chrome passkeys and consent. A private
+TLS relay fixture passed real signup/email verification and atomic expiring
+password reset, identity binding, old-password/session refusal and encrypted
+backup/restore. Mailbox case is preserved; first-run email proof is bound to the
+exact entered address, with an additional focused test and final native rerun.
+The built-in realm's existing enableSignUp=false is checked separately from the
+normal realm's additional disableSelfSignup=true; neither was enabled by email.
+
+The local identity build is installed at the existing protected location and
+public issuer/JWKS checks passed. Both actual FileBrowser previews also passed
+SSO and saved-identifier checks against the exact final installed bytes. The
+earlier published preview is unchanged.
+The shared service operator wizard remains unconfigured: no real sending account
+has been supplied, and public gateway onboarding/inbox delivery are unverified.
+The new shared-email release gate therefore remains false. Other pending
+production gates from the original brief remain pending.
+
+
+## Optional email and account administration — local update, 2026-10-14
+
+First-run setup now defaults to **Skip email for now**. The separate service-owner
+wizard also offers a skip action: no sending account, service configuration,
+Cloudflare mutation or running relay is needed. The native executable exits
+successfully after skipping. Email verification and emailed recovery remain
+unavailable until email is connected.
+
+The `/operations` Administration page prominently links **Manage users** to the
+ordinary MyAccounts realm. Existing admin forms support add/edit/delete and direct
+password reset without an old password or email code. New-user forms now start
+with an empty password rather than the upstream `123` default.
+
+A fresh native installation with email disabled passed real Chrome form creation,
+profile editing, password modal and deletion, plus API checks for new/old-password
+behavior, session revocation, unverified-email sign-in, ordinary-user admin denial
+and built-in administrator deletion refusal. Its base native health, bootstrap,
+backup/restore and signer-preservation smoke also passed. Owner skip/native exit,
+portable tests, TypeScript, frontend production build and desktop/mobile setup
+checks passed. CI source now includes the no-email administration fixture; no new
+CI run or published release is claimed.
+
+The tested identity build `optional-email-admin-20261014-dev` is installed locally
+(SHA256 `a7091ef7c5f279e678d6083a95dbcb92a880ea202932cf6e22e831b044bfb5cb`).
+Mail executable SHA256 is
+`f2b3f39175fc5f11b889a360da46764e5d8734545cc940001bbdf27cf5b48a3f`.
+Installed bytes match artifacts; the existing administrator login, new admin
+panel, disabled email state, public HTTPS health and unchanged signing keys were
+verified after upgrade. No real SMTP credentials/delivery or public mail service
+was configured. Existing production/release gates remain unchanged.

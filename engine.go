@@ -80,6 +80,9 @@ func runEngine() {
 	if err := object.EnsureMyAccountsRealm(); err != nil {
 		panic(err)
 	}
+	if err := object.ConfigureMyAccountsEmail(); err != nil {
+		panic(err)
+	}
 	object.InitDefaultStorageProvider()
 	object.InitLogProviders()
 	object.InitLdapAutoSynchronizer()

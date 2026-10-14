@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"encoding/json"
+	"github.com/casdoor/casdoor/object"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -63,7 +64,37 @@ func (c *ApiController) MyAccountsStatus() {
 		}
 	}
 	_, credentialError := os.Stat("secrets/backup-passphrase.dpapi")
-	c.ResponseOk(map[string]any{"issuer": config.Issuer, "dataPath": dir, "tunnelMode": config.TunnelMode, "databaseHealthy": portable.CheckDatabase("users.db") == nil, "backupHours": config.BackupHours, "scheduleCredentialReady": credentialError == nil, "backupState": portable.BackupStatus("."), "backups": items})
+	_, emailError := portable.LoadSharedEmail(".")
+	c.ResponseOk(map[string]any{"issuer": config.Issuer, "dataPath": dir, "tunnelMode": config.TunnelMode, "databaseHealthy": portable.CheckDatabase("users.db") == nil, "backupHours": config.BackupHours, "scheduleCredentialReady": credentialError == nil, "backupState": portable.BackupStatus("."), "backups": items, "sharedEmailConnected": config.SharedEmail && emailError == nil})
+}
+func (c *ApiController) MyAccountsEmailSetup() {
+	if !c.requireMyAccountsAdmin() {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Minute)
+	opened := make(chan string, 1)
+	done := make(chan error, 1)
+	go func() {
+		defer cancel()
+		e := portable.SetupEmail(ctx, ".", func(link string) { opened <- link })
+		if e == nil {
+			e = object.ConfigureMyAccountsEmail()
+		}
+		done <- e
+	}()
+	select {
+	case link := <-opened:
+		c.ResponseOk(map[string]string{"url": link})
+	case e := <-done:
+		if e != nil {
+			c.ResponseError(e.Error())
+		} else {
+			c.ResponseOk("Email connected")
+		}
+	case <-time.After(10 * time.Second):
+		cancel()
+		c.ResponseError("Email setup could not start")
+	}
 }
 func (c *ApiController) MyAccountsVerify() {
 	if !c.requireMyAccountsAdmin() {

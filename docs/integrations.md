@@ -4,7 +4,12 @@ Create a separate application/client in the MyAccounts Applications console for 
 
 The provider discovery document is `ISSUER/.well-known/openid-configuration`. Use its advertised endpoints; do not copy endpoint guesses into clients. Confirm its `issuer` equals the public issuer exactly. Casdoor exposes application registration, client secrets, consent settings, token fields and rotation controls; independent-client tests cover code/PKCE, signature, nonce/state, client-secret rotation and overlapping signing-key rotation. Browser tests cover explicit consent allow/deny and removal/re-prompt. Retain old signing certificates through token expiry and client JWKS refresh; consent removal does not prove immediate token or RP-session invalidation.
 
-## FileBrowser Quantum
+## Our custom FileBrowser / FileBrowser Quantum
+
+Companion source: [fahimc/filebrowser](https://github.com/fahimc/filebrowser),
+[Drive/Office branch](https://github.com/fahimc/filebrowser/tree/drive-reskin).
+Follow the [complete custom FileBrowser guide](filebrowser.md) for registration,
+configuration, source permissions, recovery and troubleshooting with pictures.
 
 Verified configuration names against [official OIDC documentation](https://filebrowserquantum.com/en/docs/configuration/authentication/oidc/) and [configuration-file documentation](https://filebrowserquantum.com/en/docs/getting-started/config/) on 2026-10-14. A disposable native drive-office-v0.4.0 build passed the real callback/session/stable-sub/normal-user tests; see `integration/filebrowser.mjs`.
 

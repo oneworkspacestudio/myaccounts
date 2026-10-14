@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/casdoor/casdoor/internal/mailrelay"
 	"net"
 	"net/http"
 	"net/url"
@@ -22,6 +23,8 @@ import (
 var setupFiles embed.FS
 
 type SetupRequest struct {
+	EmailMode      string `json:"emailMode"`
+	EmailCode      string `json:"emailCode"`
 	InstallService string `json:"installService"`
 	RootDomain     string `json:"rootDomain"`
 	Subdomain      string `json:"subdomain"`
@@ -55,6 +58,8 @@ func Setup(ctx context.Context, dir string, port int, open func(string)) error {
 	done := make(chan struct{})
 	var mu sync.Mutex
 	complete := false
+	var emailPending *mailrelay.Credential
+	emailConnected := false
 	origin := fmt.Sprintf("http://localhost:%d", port)
 	// Keep unattended setup access inside the already protected data boundary.
 	link, e := Protect([]byte(origin + "/#" + token))
@@ -75,7 +80,7 @@ func Setup(ctx context.Context, dir string, port int, open func(string)) error {
 			_ = json.Unmarshal(b, &defaults)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]any{"os": runtime.GOOS, "architecture": runtime.GOARCH, "dataPath": dir, "protectedStorage": true, "suggestedDomain": defaults.Domain, "connectorSeparate": true})
+		_ = json.NewEncoder(w).Encode(map[string]any{"os": runtime.GOOS, "architecture": runtime.GOARCH, "dataPath": dir, "protectedStorage": true, "suggestedDomain": defaults.Domain, "connectorSeparate": true, "sharedEmail": true})
 	})
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
@@ -132,10 +137,31 @@ func Setup(ctx context.Context, dir string, port int, open func(string)) error {
 			http.Error(w, "tunnel token is required", 400)
 			return
 		}
-		c := Config{Version: 1, Issuer: p.Issuer, Port: port, Email: p.Email, Name: p.Name, TunnelMode: p.Mode, InstallServiceRequested: p.InstallService == "on"}
+		c := Config{Version: 1, Issuer: p.Issuer, Port: port, Email: p.Email, Name: p.Name, TunnelMode: p.Mode, InstallServiceRequested: p.InstallService == "on", SharedEmail: p.EmailMode == "shared"}
 		if e := Validate(c); e != nil {
 			http.Error(w, e.Error(), 400)
 			return
+		}
+		if p.EmailMode != "" && p.EmailMode != "none" && p.EmailMode != "custom" && p.EmailMode != "shared" {
+			http.Error(w, "invalid email option", 400)
+			return
+		}
+		if p.EmailMode == "shared" {
+			if !emailConnected || emailPending == nil || emailPending.Email != p.Email || emailPending.Issuer != c.Issuer {
+				http.Error(w, "connect and verify email for this address and connection before continuing", 400)
+				return
+			}
+			if e := SaveSharedEmail(dir, *emailPending); e != nil {
+				http.Error(w, "could not save protected email credential", 500)
+				return
+			}
+		}
+		// Hidden custom settings must never activate accidentally when skipped.
+		if p.EmailMode == "shared" || p.EmailMode == "none" {
+			p.SMTPHost = ""
+			p.SMTPUsername = ""
+			p.SMTPPassword = ""
+			p.SMTPFrom = ""
 		}
 		if _, e := os.Stat(filepath.Join(dir, "config.json")); !os.IsNotExist(e) {
 			http.Error(w, "configuration already exists", 409)
@@ -158,6 +184,7 @@ func Setup(ctx context.Context, dir string, port int, open func(string)) error {
 		p.APIToken = ""
 		p.TunnelToken = ""
 		p.Confirm = ""
+		p.EmailCode = ""
 		b, _ := json.Marshal(p)
 		secret, e := Protect(b)
 		if e == nil {
@@ -181,6 +208,70 @@ func Setup(ctx context.Context, dir string, port int, open func(string)) error {
 		w.Write([]byte(`{"ok":true}`))
 		close(done)
 	})
+	for _, action := range []string{"begin", "confirm"} {
+		mux.HandleFunc("POST /email/"+action, func(w http.ResponseWriter, r *http.Request) {
+			if r.Header.Get("Origin") != origin || r.Header.Get("X-Setup-Token") != token {
+				http.Error(w, "invalid setup authorization", 403)
+				return
+			}
+			mu.Lock()
+			defer mu.Unlock()
+			if complete {
+				http.Error(w, "setup is complete", 409)
+				return
+			}
+			r.Body = http.MaxBytesReader(w, r.Body, 16384)
+			var p SetupRequest
+			dec := json.NewDecoder(r.Body)
+			dec.DisallowUnknownFields()
+			if dec.Decode(&p) != nil {
+				http.Error(w, "invalid email settings", 400)
+				return
+			}
+			issuer := p.Issuer
+			if p.Mode == "local" {
+				issuer = origin
+			} else if p.RootDomain != "" {
+				var e error
+				issuer, e = DomainIssuer(p.RootDomain, p.Subdomain)
+				if e != nil {
+					http.Error(w, e.Error(), 400)
+					return
+				}
+			}
+			if e := Validate(Config{Version: 1, Port: port, Name: p.Name, Email: p.Email, Issuer: issuer}); e != nil {
+				http.Error(w, e.Error(), 400)
+				return
+			}
+			client, e := mailrelay.NewClient(mailrelay.DefaultURL)
+			if e != nil {
+				http.Error(w, "shared email service is not configured", 503)
+				return
+			}
+			if action == "begin" {
+				emailPending = nil
+				emailConnected = false
+				credential, e := client.Begin(r.Context(), p.Email, issuer)
+				if e != nil {
+					http.Error(w, e.Error(), 400)
+					return
+				}
+				emailPending = &credential
+			} else {
+				if emailPending == nil || emailPending.Email != p.Email || emailPending.Issuer != issuer {
+					http.Error(w, "send a new code for this email and connection", 400)
+					return
+				}
+				if e := client.Confirm(r.Context(), *emailPending, p.EmailCode); e != nil {
+					http.Error(w, e.Error(), 400)
+					return
+				}
+				emailConnected = true
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte(`{"ok":true}`))
+		})
+	}
 	mux.HandleFunc("POST /test-email", func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Origin") != origin || r.Header.Get("X-Setup-Token") != token {
 			http.Error(w, "invalid setup authorization", 403)

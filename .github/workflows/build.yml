@@ -49,15 +49,17 @@ jobs:
       - name: Test and build
         shell: pwsh
         run: |
-          go test ./internal/portable ./cred .
+          go test ./internal/mailrelay ./internal/mailservice ./internal/portable ./cred . ./cmd/myaccounts-mail
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          go vet ./internal/portable .
+          go vet ./internal/mailrelay ./internal/mailservice ./internal/portable . ./cmd/myaccounts-mail
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           $env:CGO_ENABLED='0'
           New-Item -ItemType Directory dist -Force | Out-Null
           $buildVersion='0.1.0-dev'
           if ($env:GITHUB_REF_TYPE -eq 'tag') { $buildVersion=$env:GITHUB_REF_NAME.TrimStart('v') }
           go build -trimpath -ldflags "-s -w -X main.version=$buildVersion" -o dist/MyAccounts-windows-amd64.exe .
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          go build -trimpath -ldflags "-s -w" -o dist/MyAccounts-Mail-windows-amd64.exe ./cmd/myaccounts-mail
           exit $LASTEXITCODE
       - name: Native executable smoke
         shell: pwsh
@@ -65,14 +67,38 @@ jobs:
           npm ci --prefix integration --ignore-scripts
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           $env:MYACCOUNTS_PLAYWRIGHT=(Resolve-Path integration/node_modules/@playwright/test/index.mjs).Path
-          ./scripts/smoke.ps1 -Exe ./dist/MyAccounts-windows-amd64.exe -OIDC
+          node ./integration/setup-wizard.mjs
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          go build -trimpath -o dist/MyAccounts-mail-fixture.exe ./integration/mailrelay-fixture
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $mailRoot=Join-Path $env:RUNNER_TEMP ('mail-fixture-'+[Guid]::NewGuid())
+          $mailProcess=Start-Process -FilePath (Resolve-Path dist/MyAccounts-mail-fixture.exe) -ArgumentList @('-data',('"'+$mailRoot+'"')) -WindowStyle Hidden -PassThru
+          try {
+            $mailInfo=Join-Path $mailRoot 'fixture.json'
+            for($n=0;$n -lt 120 -and !(Test-Path -LiteralPath $mailInfo);$n++){
+              if($mailProcess.HasExited){throw 'TLS email fixture stopped'}
+              Start-Sleep -Milliseconds 500
+            }
+            if(!(Test-Path -LiteralPath $mailInfo)){throw 'TLS email fixture did not become ready'}
+            $env:MYACCOUNTS_RELAY_FIXTURE=$mailInfo
+            ./scripts/smoke.ps1 -Exe ./dist/MyAccounts-windows-amd64.exe -OIDC -SharedEmail
+          } finally {
+            Remove-Item Env:MYACCOUNTS_RELAY_FIXTURE -ErrorAction SilentlyContinue
+            if(!$mailProcess.HasExited){Stop-Process -Id $mailProcess.Id -Force}
+          }
+      - name: User administration without email
+        shell: pwsh
+        run: |
+          $env:MYACCOUNTS_PLAYWRIGHT=(Resolve-Path integration/node_modules/@playwright/test/index.mjs).Path
+          ./scripts/smoke.ps1 -Exe ./dist/MyAccounts-windows-amd64.exe -OIDC -Checks user-admin
       - name: SBOM and checksum
         shell: pwsh
         run: |
           go run github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@v1.9.0 mod -licenses -json -output dist/SBOM.cdx.json
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           $hash=(Get-FileHash dist/MyAccounts-windows-amd64.exe -Algorithm SHA256).Hash.ToLower()
-          "$hash  MyAccounts-windows-amd64.exe" | Set-Content dist/SHA256SUMS.txt
+          $mailHash=(Get-FileHash dist/MyAccounts-Mail-windows-amd64.exe -Algorithm SHA256).Hash.ToLower()
+          @("$hash  MyAccounts-windows-amd64.exe", "$mailHash  MyAccounts-Mail-windows-amd64.exe") | Set-Content dist/SHA256SUMS.txt
           Copy-Item LICENSE,NOTICE,docs/release-acceptance.json dist/
           Copy-Item docs/preview-release.md dist/KNOWN-LIMITATIONS.md
       - name: Verify release acceptance
@@ -93,7 +119,7 @@ jobs:
             gh release create $tag --repo $env:GITHUB_REPOSITORY --verify-tag --draft --prerelease --title "MyAccounts $tag" --notes-file docs/preview-release.md
             if ($LASTEXITCODE) { throw 'Draft release creation failed' }
           } elseif ($draft -ne 'true') { throw 'Refusing to replace a published release' }
-          gh release upload $tag dist/MyAccounts-windows-amd64.exe dist/SHA256SUMS.txt dist/SBOM.cdx.json dist/LICENSE dist/NOTICE dist/KNOWN-LIMITATIONS.md dist/release-acceptance.json --repo $env:GITHUB_REPOSITORY --clobber
+          gh release upload $tag dist/MyAccounts-windows-amd64.exe dist/MyAccounts-Mail-windows-amd64.exe dist/SHA256SUMS.txt dist/SBOM.cdx.json dist/LICENSE dist/NOTICE dist/KNOWN-LIMITATIONS.md dist/release-acceptance.json --repo $env:GITHUB_REPOSITORY --clobber
           if ($LASTEXITCODE) { throw 'Draft release asset upload failed' }
   audit:
     runs-on: ubuntu-latest

@@ -31,3 +31,15 @@ The launcher’s local wizard verifies Host, Origin and an unguessable fragment-
 ## Important unfinished verification
 
 See `docs/acceptance.md` for the authoritative status of every brief requirement. A packaged engine does not establish that all upstream features work with our SQLite/Windows configuration. Public issuer consistency, secure cookie handling, independent-client code/PKCE flows, SMTP, integrations, clean Windows startup and reboot/service tests must be demonstrated before a v0.1.0 release.
+
+
+## Shared email continuation
+
+Current source adds a separate native shared email service and operator wizard.
+Installations generate their own credential, verify administrator email ownership,
+and keep the credential in DPAPI storage. The operator alone configures the
+sending account. The service sends fixed six-digit verification/reset code
+messages through encrypted SMTP; it is not a general-purpose open SMTP relay.
+The identity server's Cloudflare tunnel remains independent. See
+[shared email](shared-email.md) for the protocol, quota, trust, backup and deployment
+boundaries. The earlier published preview does not contain this continuation.

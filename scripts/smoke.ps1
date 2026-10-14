@@ -1,5 +1,7 @@
-param([Parameter(Mandatory=$true)][string]$Exe,[string]$Root,[switch]$OIDC,[string]$Checks="all")
+param([Parameter(Mandatory=$true)][string]$Exe,[string]$Root,[switch]$OIDC,[string]$Checks="all",[switch]$SharedEmail)
 $ErrorActionPreference='Stop'
+$priorCertFile=$env:SSL_CERT_FILE
+$priorGoDebug=$env:GODEBUG
 $Exe=(Resolve-Path -LiteralPath $Exe).Path
 if (!$Root) { $Root=Join-Path ([System.IO.Path]::GetTempPath()) ('myaccounts-smoke-'+[Guid]::NewGuid()) }
 if (Test-Path -LiteralPath $Root) { throw 'Smoke test requires a fresh directory' }
@@ -7,13 +9,29 @@ New-Item -ItemType Directory -Path (Join-Path $Root 'secrets') -Force | Out-Null
 $port=18787
 $origin="http://localhost:$port"
 $password=[Guid]::NewGuid().ToString()+[Guid]::NewGuid().ToString()
-$config=@{version=1;issuer=$origin;port=$port;adminEmail='admin@example.com';adminName='Smoke Admin';tunnelMode='local'}
+$config=@{version=1;issuer=$origin;port=$port;adminEmail='admin@example.com';adminName='Smoke Admin';tunnelMode='local';sharedEmail=[bool]$SharedEmail}
 $utf8=New-Object System.Text.UTF8Encoding($false)
 [System.IO.File]::WriteAllText((Join-Path $Root 'config.json'),($config|ConvertTo-Json),$utf8)
 Add-Type -AssemblyName System.Security.Cryptography.ProtectedData
 $bootstrap=[System.Text.Encoding]::UTF8.GetBytes((@{name='Smoke Admin';email='admin@example.com';password=$password}|ConvertTo-Json))
 $protected=[System.Security.Cryptography.ProtectedData]::Protect($bootstrap,$null,[System.Security.Cryptography.DataProtectionScope]::LocalMachine)
 [System.IO.File]::WriteAllBytes((Join-Path $Root 'secrets/bootstrap.dpapi'),$protected)
+if($SharedEmail){
+ # Synthetic fixture credential: never sends to or enrolls with a live service.
+ $mailCredential=@{endpoint='https://mail.example.com';id=([Guid]::NewGuid().ToString('N')+[Guid]::NewGuid().ToString('N'));secret=([Guid]::NewGuid().ToString('N')+[Guid]::NewGuid().ToString('N'));email='admin@example.com';issuer=$origin}
+ $mailBytes=[System.Text.Encoding]::UTF8.GetBytes(($mailCredential|ConvertTo-Json))
+ $mailProtected=[System.Security.Cryptography.ProtectedData]::Protect($mailBytes,$null,[System.Security.Cryptography.DataProtectionScope]::LocalMachine)
+ [System.IO.File]::WriteAllBytes((Join-Path $Root 'secrets/email-relay.dpapi'),$mailProtected)
+ if($env:MYACCOUNTS_RELAY_FIXTURE){
+  $relayInfo=Get-Content -LiteralPath $env:MYACCOUNTS_RELAY_FIXTURE -Raw|ConvertFrom-Json
+  if($relayInfo.endpoint -notmatch '^https://localhost:[0-9]+$'){throw 'Shared email fixture must stay on loopback'}
+  Copy-Item -LiteralPath $relayInfo.credential -Destination (Join-Path $Root 'secrets/email-relay.dpapi')
+  $env:SSL_CERT_FILE=$relayInfo.ca
+  $env:GODEBUG='x509sslcertoverrideplatform=1'
+ }
+
+}
+
 $restoreProcess=$null
 $process=Start-Process -FilePath $Exe -ArgumentList @('-data',('"'+$Root+'"'),'-no-browser') -WindowStyle Hidden -PassThru
 try {
@@ -32,6 +50,17 @@ try {
  if(!$sessionCookies -or @($sessionCookies|Where-Object {!$_.HttpOnly}).Count){throw 'Session cookie is not HttpOnly'}
  $account=Invoke-RestMethod "$origin/api/get-account" -WebSession $browserSession
  if ($account.status -ne 'ok' -or $account.data.email -ne 'admin@example.com') { throw 'Session account mismatch' }
+ if($SharedEmail){
+  if(!$account.data.emailVerified){throw 'Verified administrator email not applied'}
+  foreach($appName in @('app-built-in','myaccounts')){
+   $mailApp=(Invoke-RestMethod "$origin/api/get-application?id=admin/$appName" -WebSession $browserSession).data
+   if($mailApp.enableSignUp -or ($appName -eq 'myaccounts' -and !$mailApp.disableSelfSignup)){throw 'Email setup changed registration policy'}
+   if(!@($mailApp.providers|Where-Object {$_.owner -eq 'admin' -and $_.name -eq 'myaccounts-email'}).Count){throw 'Shared provider not attached'}
+   if(!@($mailApp.signinItems|Where-Object {$_.name -eq 'Forgot password?' -and $_.visible}).Count){throw 'Shared email recovery not enabled'}
+  }
+  Write-Output 'PASS: shared email provider, verified administrator and recovery applied without enabling registration'
+ }
+
  $account.data.displayName='Updated Smoke Admin'
  $profile=Invoke-RestMethod "$origin/api/update-user?id=built-in/admin&columns=displayName" -Method Post -Body ($account.data|ConvertTo-Json -Depth 64) -ContentType 'application/json' -Headers @{Origin=$origin} -WebSession $browserSession
  if($profile.status -ne 'ok'){throw 'Profile edit failed'}
@@ -51,6 +80,8 @@ try {
   try {
    if($Checks -eq 'all' -or $Checks -eq 'oidc'){node (Join-Path $PSScriptRoot '../integration/oidc.mjs');if($LASTEXITCODE){throw 'Independent OIDC test failed'}}
    if($Checks -eq 'all' -or $Checks -eq 'mfa'){node (Join-Path $PSScriptRoot '../integration/mfa.mjs');if($LASTEXITCODE){throw 'Independent MFA test failed'}}
+   if($Checks -eq 'docs'){node (Join-Path $PSScriptRoot '../integration/docs-screenshots.mjs');if($LASTEXITCODE){throw 'Documentation capture failed'}}
+   if($Checks -eq 'user-admin'){node (Join-Path $PSScriptRoot '../integration/user-admin.mjs');if($LASTEXITCODE){throw 'No-email administrator user management failed'}}
    if($Checks -eq 'all' -or $Checks -eq 'operations'){node (Join-Path $PSScriptRoot '../integration/operations.mjs');if($LASTEXITCODE){throw 'Operations test failed'}}
    if($Checks -eq 'all' -or $Checks -eq 'group-mfa'){node (Join-Path $PSScriptRoot '../integration/group-mfa.mjs');if($LASTEXITCODE){throw 'Group MFA test failed'}}
    if($Checks -eq 'all' -or $Checks -eq 'sessions'){node (Join-Path $PSScriptRoot '../integration/sessions.mjs');if($LASTEXITCODE){throw 'Session revocation test failed'}}
@@ -61,7 +92,7 @@ try {
    if($env:MYACCOUNTS_PLAYWRIGHT -and ($Checks -eq 'all' -or $Checks -eq 'consent')){node (Join-Path $PSScriptRoot '../integration/consent-browser.mjs');if($LASTEXITCODE){throw 'Consent browser test failed'}}
    if($Checks -eq 'all' -or $Checks -eq 'scheduled-backup'){node (Join-Path $PSScriptRoot '../integration/scheduled-backup.mjs');if($LASTEXITCODE){throw 'Scheduled backup test failed'}}
    if($Checks -eq 'all' -or $Checks -eq 'email-recovery'){node (Join-Path $PSScriptRoot '../integration/email-recovery.mjs');if($LASTEXITCODE){throw 'Email recovery fixture test failed'}}
-   if($env:MYACCOUNTS_FILEBROWSER_EXE){$env:MYACCOUNTS_FILEBROWSER_DATA=Join-Path $Root 'filebrowser-integration';node (Join-Path $PSScriptRoot '../integration/filebrowser.mjs');if($LASTEXITCODE){throw 'FileBrowser integration failed'}}
+   if($env:MYACCOUNTS_FILEBROWSER_EXE -and $Checks -ne 'docs'){$env:MYACCOUNTS_FILEBROWSER_DATA=Join-Path $Root 'filebrowser-integration';node (Join-Path $PSScriptRoot '../integration/filebrowser.mjs');if($LASTEXITCODE){throw 'FileBrowser integration failed'}}
    if($env:MYACCOUNTS_GITEA_EXE){$env:MYACCOUNTS_GITEA_DATA=Join-Path $Root 'gitea-integration';node (Join-Path $PSScriptRoot '../integration/gitea.mjs');if($LASTEXITCODE){throw 'Gitea integration failed'}}
   } finally {Remove-Item Env:MYACCOUNTS_TEST_PASSWORD;Remove-Item Env:MYACCOUNTS_TEST_ISSUER;Remove-Item Env:MYACCOUNTS_FIXTURE;Remove-Item Env:MYACCOUNTS_EXE}
  }
@@ -105,4 +136,6 @@ try {
  $children=Get-CimInstance Win32_Process | Where-Object ParentProcessId -eq $process.Id
  foreach($child in $children){Stop-Process -Id $child.ProcessId -Force -ErrorAction SilentlyContinue}
  if (!$process.HasExited) { Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue }
+ $env:SSL_CERT_FILE=$priorCertFile
+ $env:GODEBUG=$priorGoDebug
 }

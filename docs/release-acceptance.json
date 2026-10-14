@@ -51,6 +51,11 @@
       "name": "GitHub authorization repository CI release",
       "passed": true,
       "evidence": "Private source pushed; preview-20261014.1 CI 38590999214 Windows/audit/release all succeeded, published evaluation preview; downloaded/installed SHA256 78957576b48be9b142822fe35d769dd69c0eda66f703eca9fe8e46c8fc7c2b59 verified. Full v0.1.0 remains blocked by other gates."
+    },
+    {
+      "name": "shared email public deployment and onboarding",
+      "passed": false,
+      "evidence": "Native relay/operator/wizard/storage/rotation tests, root tests/vet/build, desktop/mobile UI, full native regression and actual TLS relay signup/atomic expiring reset/restore passed locally. Final mailbox-case proof test and targeted native rerun passed. Optional no-email installer/owner skip and real Chrome administrator add/edit/delete/direct reset passed locally; email is not required for accounts. Service-owner sending credentials and public gateway/inbox delivery still pending; published preview-20261014.1 predates this source continuation."
     }
   ]
 }

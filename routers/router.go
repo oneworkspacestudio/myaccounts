@@ -33,6 +33,7 @@ func InitAPI() {
 	web.Router("/api/myaccounts/console", &controllers.ApiController{}, "GET:MyAccountsConsole")
 	web.Router("/operations", &controllers.RootController{}, "GET:MyAccountsOperations")
 	web.Router("/api/myaccounts/status", &controllers.ApiController{}, "GET:MyAccountsStatus")
+	web.Router("/api/myaccounts/email-setup", &controllers.ApiController{}, "POST:MyAccountsEmailSetup")
 	web.Router("/api/myaccounts/verify", &controllers.ApiController{}, "GET:MyAccountsVerify")
 	web.Router("/api/myaccounts/backup", &controllers.ApiController{}, "POST:MyAccountsBackup")
 	web.Router("/api/myaccounts/schedule", &controllers.ApiController{}, "POST:MyAccountsSchedule")
