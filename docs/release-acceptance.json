@@ -15,7 +15,7 @@
     {
       "name": "accounts profiles MFA recovery and sessions",
       "passed": false,
-      "evidence": "Password/profile/session and TOTP/recovery replay tests pass; email recovery, passkeys, group policy and full session revocation pending"
+      "evidence": "Password/profile/TOTP/recovery, inherited group mandate and selected/all issuer sessions passed; real SMTP recovery and passkey ceremony pending"
     },
     {
       "name": "independent OIDC client",
@@ -29,8 +29,8 @@
     },
     {
       "name": "authorized Cloudflare and public HTTPS",
-      "passed": false,
-      "evidence": "mocked API tests pass; real test zone not supplied"
+      "passed": true,
+      "evidence": "Fresh remote tunnel/exact DNS provisioned with authorization; HTTPS issuer/discovery and both real FileBrowser browser callbacks passed"
     },
     {
       "name": "Windows service reboot and connector recovery",
@@ -40,17 +40,17 @@
     {
       "name": "encrypted backup and no-data-loss upgrade",
       "passed": false,
-      "evidence": "Native backup/restore preserves DB bytes, identity login and signing keys; upgrade/cross-machine recovery pending"
+      "evidence": "Native/online WAL backup/restore and failed-migration original identity recovery passed; live upgrade healthy; cross-machine/scheduled firing pending"
     },
     {
       "name": "security regression and dependency audit",
       "passed": false,
-      "evidence": "Focused tests/vet pass; govulncheck zero reachable, seven nonreachable advisories remain; manual licenses and full threat regression pending"
+      "evidence": "Focused tests/vet pass; govulncheck zero reachable, four nonreachable advisories remain; full threat and license review pending"
     },
     {
       "name": "GitHub authorization repository CI release",
       "passed": false,
-      "evidence": "explicit external-account authorization requested and pending"
+      "evidence": "Private fahimc/myaccounts created and main pushed; first CI proxy download failure fixed in source; successful CI/release pending"
     }
   ]
 }

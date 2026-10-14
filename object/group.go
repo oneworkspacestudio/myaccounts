@@ -201,6 +201,11 @@ func UpdateGroup(id string, group *Group, isGlobalAdmin bool, lang string) (bool
 	if err != nil {
 		return false, err
 	}
+	if affected != 0 {
+		if err = enforceGroupMfaTransition(oldGroup, group); err != nil {
+			return false, err
+		}
+	}
 
 	return affected != 0, nil
 }

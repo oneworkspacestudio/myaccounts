@@ -102,8 +102,8 @@ func (c Cloudflare) Provision(ctx context.Context, p ProvisionRequest) (Provisio
 	if e := c.call(ctx, "GET", "/zones/"+p.ZoneID, nil, &zone); e != nil {
 		return result, e
 	}
-	if zone.Account.ID != p.AccountID || zone.Status != "active" || !strings.HasSuffix(p.Hostname, "."+zone.Name) {
-		return result, errors.New("hostname must be a subdomain of an active zone in the selected account")
+	if zone.Account.ID != p.AccountID || zone.Status != "active" || (p.Hostname != zone.Name && !strings.HasSuffix(p.Hostname, "."+zone.Name)) {
+		return result, errors.New("hostname must belong to an active zone in the selected account")
 	}
 	dnsPath := "/zones/" + p.ZoneID + "/dns_records"
 	var records []struct{ ID string }

@@ -2,6 +2,7 @@ import * as React from "react";
 import i18next from "i18next";
 import {Link, useLocation, useParams} from "react-router-dom";
 import {MapTable} from "@/components/crud/MapTable";
+import {Switch} from "@/components/ui/switch";
 import {Badge} from "@/components/ui/badge";
 import {SimpleEditPage, type EditField} from "@/components/crud/SimpleEditPage";
 import {useAccount} from "@/hooks/use-account";
@@ -87,6 +88,7 @@ export default function GroupEditPage() {
         />
       ),
     },
+    {type:"custom",name:"groupMfaPolicy",labelKey:"Require authenticator MFA",render:(ctx,update)=><div className="flex items-center gap-3"><Switch aria-label="Require authenticator MFA for this group" checked={ctx.record.properties?.["myaccounts.requireMfa"]==="true"} onCheckedChange={checked=>update("properties",{...ctx.record.properties,"myaccounts.requireMfa":checked?"true":"false"})}/><span className="text-sm text-muted-foreground">Require TOTP enrollment and verification. Existing issuer sessions are revoked when enforcement changes.</span></div>},
     {type: "switch", name: "isEnabled", labelKey: "general:Is enabled"},
   ];
 

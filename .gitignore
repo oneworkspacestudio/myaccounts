@@ -34,3 +34,6 @@ manifests/
 *.pfx
 *.p12
 *.key
+
+examples/node/node_modules/
+examples/python/__pycache__/

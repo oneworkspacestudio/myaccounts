@@ -13,17 +13,22 @@ import (
 )
 
 type Config struct {
-	Version    int    `json:"version"`
-	Issuer     string `json:"issuer"`
-	Port       int    `json:"port"`
-	Email      string `json:"adminEmail"`
-	Name       string `json:"adminName"`
-	TunnelMode string `json:"tunnelMode"`
+	InstallServiceRequested bool   `json:"installServiceRequested,omitempty"`
+	BackupHours             int    `json:"backupHours,omitempty"`
+	Version                 int    `json:"version"`
+	Issuer                  string `json:"issuer"`
+	Port                    int    `json:"port"`
+	Email                   string `json:"adminEmail"`
+	Name                    string `json:"adminName"`
+	TunnelMode              string `json:"tunnelMode"`
 }
 
 var hostname = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$`)
 
 func Validate(c Config) error {
+	if c.BackupHours < 0 || c.BackupHours > 168 {
+		return errors.New("backup interval must be 0 to 168 hours")
+	}
 	if c.Version != 1 || c.Port < 1024 || c.Port > 65535 {
 		return errors.New("unsupported configuration or invalid port")
 	}

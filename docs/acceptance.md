@@ -30,7 +30,7 @@ Executed on the developer Windows host with Go 1.27.2; temporary protected data 
 * `integration/mfa.mjs` with independent otpauth 9.5.2: passed enrollment, password/MFA challenge, bad-code refusal, valid TOTP, repeated-step refusal and two concurrent requests for one recovery code with exactly one success. Replay markers persist in SQLite.
 * Real FileBrowser native build drive-office-v0.3.1 (commit 72fc7547d0b099864f2957e26e745cc1ff6facbc, Quantum beta2.1.2 derivative): passed real OIDC login redirect/callback, token verification, authenticated session, stable-sub linkage and normal-user permissions in disposable configuration.
 * Official Gitea 28.1.0 Windows AMD64 (SHA256 68495c963bab1bfcbbe5b48916c7f362a49aca931583575e09763a02ddf63e2d): passed real OIDC redirect/callback, automatic account registration, signed-in settings page, stable subject and administrator-access refusal in disposable configuration. Browser sessions do not authenticate this version's API; the harness checks the web session instead.
-* govulncheck 1.9.0: initial eight reachable advisories remediated through pinned x/net, OpenTelemetry, AWS S3 and Redis upgrades. Repeat scan exit 0: zero reachable vulnerabilities, but four imported-package and three module advisories remain nonreachable in the scan. This is not a blanket vulnerability-free finding.
+* govulncheck 1.9.0: initial eight reachable advisories remediated through pinned x/net, OpenTelemetry, AWS S3 and Redis upgrades. Repeat scan exit 0: zero reachable vulnerabilities, but one imported-package and three module advisories remain nonreachable in the scan. This is not a blanket vulnerability-free finding.
 * Official connector download through the native `tunnel download` command: passed SHA256 verification; cloudflared 2026.10.0 runs (`86aee4017b26625cee8484c113558f48effa4cd47f7aa05fcf425604e5d2b23c`). No authenticated tunnel operation claimed.
 * CycloneDX gomod 1.9.0: generated `dist/SBOM.cdx.json`, format 1.6, 303 components. License detection warnings for darabonba-number and aliyun-oss require manual review. No complete third-party license clearance claimed.
 
@@ -42,21 +42,27 @@ The initial isolated Gitea migration wrote an empty `%USERPROFILE%\.ssh\authoriz
 
 | Brief area | Current status / remaining verification |
 | --- | --- |
-| Private GitHub repository, commits/push, CI, release | Repository authorization requested; no remote or release claimed. Workflow cannot be described as verified until run. |
+| Private GitHub repository, commits/push, CI, release | Private repository created and initial main pushed with user authorization. First CI failed on transient module-proxy HTTP/2 errors; retries added. Successful CI/release proof pending. |
 | Email/password account system, profiles and administration | Executable-level email/password, session and profile tests passed; full registration and administration acceptance pending. |
 | Registration, email verification, reset/recovery | Upstream flows retained; initial signup disabled. Real SMTP delivery and expiring/single-use recovery tests pending. |
-| TOTP, recovery codes, passkeys, group MFA mandates | TOTP enrollment/challenge/replay and concurrent single-use recovery tests passed. Passkeys and group policies pending. |
-| Email-entry → password-entry and remembered-account UX | Established Casdoor UI retained with original branding; exact requested interaction parity and all chooser/switch/revoke flows need review. |
+| TOTP, recovery codes, passkeys, group MFA mandates | TOTP and recovery replay passed. Inherited selected-group TOTP mandate, enrollment/access denial and issuer-session revocation passed; passkey ceremony proof pending. |
+| Email-entry → password-entry and remembered-account UX | Email-first/password-step UI, consented device identifiers and select/change/remove passed real Chrome tests. Selected/all issuer-session sign-out passed native API tests. |
 | OIDC, redirects, PKCE, state/nonce, signed tokens, rotation | Independent OIDC regression and real relying-party callbacks passed as listed above. Full browser consent/revocation and signing-key rotation pending. |
 | App launcher, roles/groups, per-app visibility | Upstream application administration and access model retained; user-facing launcher/visibility acceptance pending. |
-| FileBrowser Quantum / Gitea | Real native FileBrowser and Gitea OIDC flows passed in disposable configuration. Node independent-client harness present; standalone Python example pending. |
+| FileBrowser Quantum / Gitea | Real native FileBrowser and Gitea OIDC flows passed in disposable configuration. Node independent-client harness present; standalone Node and Python examples passed real browser callback/sign-out tests. |
 | Opt-in application discovery / automatic config changes | Not implemented. No unknown software configuration is edited. |
-| First-run domain root/subdomain controls, prerequisite display | HTTPS issuer input supports chosen hostname. Dedicated root/subdomain fields and full prerequisite review/status UI remain incomplete. |
-| Cloudflare actual resources, DNS, connector and public login | Code and mocked API tests implemented. No credentials/test zone supplied; no real cloud resources created. Official connector download/hash/version passed; authenticated operation, status/rotation and public HTTPS checks pending. |
+| First-run domain root/subdomain controls, prerequisite display | HTTPS issuer input supports chosen hostname. Root/subdomain fields, derived issuer and protected-storage/OS prerequisite display implemented; local-only and manual modes remain available. |
+| Cloudflare actual resources, DNS, connector and public login | Code and mocked API tests implemented. Authorized existing Cloudflare login used read-only to create a fresh dedicated remote tunnel and exact login.m8e.co.uk DNS record. Public HTTPS/discovery and real browser login passed. Operational rotation/reconnection acceptance pending. |
 | Windows service / boot / reboot / shutdown recovery | Service command implementation present. Actual service installation/reboot and connector recovery tests pending. |
 | Secret encryption | Launcher credentials protected by machine DPAPI plus mandatory ACLs. SQLite secrets/signing keys rely on ACLs; full database encryption is not implemented. |
-| Backup, restore and upgrade | Native encrypted backup/restore preserves SQLite bytes, identity login and signing keys. Upgrade and cross-machine restore pending; scheduling and automatic migration rollback not implemented. |
-| Updates, health/logs/backups administration panels | Local health/logs and CLI operations present; release-check and token-recovery CLI implemented; full MyAccounts-specific administration panels remain incomplete. |
+| Backup, restore and upgrade | Native backup/restore preserves DB/identity/signing keys; online VACUUM INTO captures committed WAL. DPAPI-protected schedule and pre-upgrade encrypted snapshot/failed-start DB rollback implemented and tested. Actual live upgrade remained healthy. Cross-machine and scheduled firing proof pending. |
+| Updates, health/logs/backups administration panels | Global-admin server console provides status, HTTPS verification, online encrypted backup/download, schedule controls and release checking. Operations access/traversal/schedule tests passed; detailed connector controls/log viewer remain pending. |
 | Clean Windows EXE, SBOM, vulnerabilities, static analysis | Build, focused tests/vet, reachable-dependency audit and SBOM generation passed locally. Clean host, remaining advisories and manual license review remain gates. |
 
 The project must remain a development build while these gaps exist. A successful local smoke test cannot justify publishing a production identity release or claiming the full brief is complete.
+
+## Continuation evidence
+
+Public issuer `https://login.m8e.co.uk` is configured through the EXE wizard handler with user-authorized Cloudflare creation. Source H:, runtime F: NTFS, actual local port 18888. FileBrowser v0.4.0 local (8810) and existing remote preview (8794) were backed up and connected separately. Real Chrome verified both callbacks, matching stable subject, normal-user permissions, forbidden administrator profile access, protected cookies and saved-account UI. Windows startup is optional in the wizard, requests UAC only when selected, and preserves interactive data-owner access under SYSTEM. Actual service installation/reboot are not yet claimed. Windows Sandbox is unavailable on this host. SMTP credentials are to be entered at execution; actual delivery has not been tested and signup remains disabled.
+
+Casdoor built-in is reserved for global administrators. An independent `myaccounts` organization/application is initialized for normal users; built-in privilege consent remains disabled. Isolated normal-organization account/group-policy tests passed. Never enable built-in signup as a substitute.

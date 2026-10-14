@@ -34,7 +34,7 @@ func TestIssuerValidation(t *testing.T) {
 }
 func TestAtomicConfiguration(t *testing.T) {
 	d := t.TempDir()
-	c := Config{1, "http://localhost:8787", 8787, "admin@example.com", "Administrator", "local"}
+	c := Config{Version: 1, Issuer: "http://localhost:8787", Port: 8787, Email: "admin@example.com", Name: "Administrator", TunnelMode: "local"}
 	if e := Save(d, c); e != nil {
 		t.Fatal(e)
 	}

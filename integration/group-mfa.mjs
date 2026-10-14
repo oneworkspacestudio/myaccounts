@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+import {randomBytes} from 'node:crypto';
+const origin=process.env.MYACCOUNTS_TEST_ISSUER,password=process.env.MYACCOUNTS_TEST_PASSWORD;assert(origin&&password);
+function browser(){const jar=new Map();return async(route,body)=>{const r=await fetch(origin+route,{method:body?'POST':'GET',headers:{Origin:origin,'Content-Type':'application/json',Cookie:[...jar].map(([k,v])=>`${k}=${v}`).join('; ')},body:body?JSON.stringify(body):undefined});for(const value of r.headers.getSetCookie()){const item=value.split(';')[0],i=item.indexOf('=');jar.set(item.slice(0,i),item.slice(i+1));}return r.json();};}
+const admin=browser();assert.equal((await admin('/api/login',{organization:'built-in',username:'admin@example.com',password,application:'app-built-in',type:'login',signinMethod:'Password'})).status,'ok');
+const suffix=randomBytes(6).toString('hex'),realm='policy-realm-'+suffix,name='group-policy-'+suffix,childName=name+'-child';
+const org=(await admin('/api/get-organization?id=admin/built-in')).data;assert.equal((await admin('/api/add-organization',{...org,name:realm,displayName:'Isolated MFA policy realm',defaultApplication:''})).status,'ok');
+const app=(await admin('/api/get-application?id=admin/app-built-in')).data;const application='policy-app-'+suffix;assert.equal((await admin('/api/add-application',{...app,name:application,organization:realm,clientId:application,clientSecret:randomBytes(32).toString('hex'),redirectUris:[],providers:[]})).status,'ok');
+const parent={owner:realm,name,displayName:'Authenticator-required test group',type:'Virtual',isEnabled:true,properties:{'myaccounts.requireMfa':'true'}};
+assert.equal((await admin('/api/add-group',parent)).status,'ok');assert.equal((await admin('/api/add-group',{owner:realm,name:childName,displayName:'Inherited policy test',type:'Virtual',parentId:name,isEnabled:true,properties:{}})).status,'ok');
+const template=(await admin('/api/get-account')).data;const email='policy-'+suffix+'@example.com';const credential=randomBytes(32).toString('base64url');
+const user={...template,owner:realm,name:'policy-'+suffix,id:'',displayName:'Policy Test',email,emailVerified:true,isAdmin:false,type:'normal-user',passwordType:'plain',passwordSalt:'',password:credential,groups:[realm+'/'+childName],totpSecret:'',mfaItems:[],recoveryCodes:[],preferredMfaType:'',mfaEmailEnabled:false,mfaPhoneEnabled:false,mfaRadiusEnabled:false,mfaPushEnabled:false,needUpdatePassword:false};
+const added=await admin('/api/add-user',user);assert.equal(added.status,'ok',String(added.msg||'Add user failed').replaceAll(credential,'[redacted]'));
+const login={organization:realm,username:email,password:credential,application,type:'login',signinMethod:'Password'};
+const pending=browser();const blocked=await pending('/api/login',login);assert.equal(blocked.status,'ok',String(blocked.msg||'Group login failed').replaceAll(credential,'[redacted]'));assert.equal(blocked.data,'RequiredMfa','Inherited group did not mandate authenticator enrollment');
+const secretEndpoint=await pending('/api/myaccounts/status');assert.equal(secretEndpoint.status,'error','Pending normal user gained admin access');
+parent.properties['myaccounts.requireMfa']='false';assert.equal((await admin('/api/update-group?id='+realm+'/'+name,parent)).status,'ok');
+const permitted=browser();const allowed=await permitted('/api/login',login);assert.equal(allowed.status,'ok');assert.notEqual(allowed.data,'RequiredMfa','Disabled policy still blocked sign-in');
+const account=await permitted('/api/get-account');assert.equal(account.data.email,email);assert.equal(account.data.isAdmin,false);
+parent.properties['myaccounts.requireMfa']='true';assert.equal((await admin('/api/update-group?id='+realm+'/'+name,parent)).status,'ok');const revoked=await permitted('/api/get-account');assert(!revoked.data||revoked.status==='error','Policy change did not revoke existing issuer session');
+console.log('PASS: selected-group inherited authenticator enrollment, pending-user access denial, administrator policy disable and normal login');

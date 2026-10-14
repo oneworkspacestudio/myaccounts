@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"golang.org/x/sys/windows"
 	"io/fs"
+	"os"
 	"os/user"
 	"path/filepath"
+	"strings"
 	"unsafe"
 )
 
@@ -31,9 +33,23 @@ func ProtectDir(dir string) error {
 	if e != nil {
 		return e
 	}
+	// Preserve the configuring user's access when the SYSTEM service restarts.
+	ownerSID := u.Uid
+	ownerPath := filepath.Join(dir, ".owner-sid")
+	if info, err := os.Lstat(ownerPath); err == nil && info.Mode()&os.ModeSymlink != 0 {
+		return fmt.Errorf("owner marker must not be a symbolic link")
+	}
+	if b, err := os.ReadFile(ownerPath); err == nil {
+		ownerSID = strings.TrimSpace(string(b))
+		if _, err = windows.StringToSid(ownerSID); err != nil {
+			return fmt.Errorf("invalid data owner marker")
+		}
+	} else if !os.IsNotExist(err) {
+		return err
+	}
 	// Replace the complete DACL, including pre-existing explicit grants.
 	// Machine DPAPI requires this boundary on every existing child as well.
-	sd, e := windows.SecurityDescriptorFromString("D:P(A;OICI;FA;;;" + u.Uid + ")(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)")
+	sd, e := windows.SecurityDescriptorFromString("D:P(A;OICI;FA;;;" + u.Uid + ")(A;OICI;FA;;;" + ownerSID + ")(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)")
 	if e != nil {
 		return e
 	}
@@ -41,7 +57,7 @@ func ProtectDir(dir string) error {
 	if e != nil {
 		return e
 	}
-	return filepath.WalkDir(dir, func(path string, entry fs.DirEntry, walkErr error) error {
+	if e := filepath.WalkDir(dir, func(path string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
 		}
@@ -52,7 +68,13 @@ func ProtectDir(dir string) error {
 			return fmt.Errorf("cannot protect data permissions: %w", e)
 		}
 		return nil
-	})
+	}); e != nil {
+		return e
+	}
+	if _, err := os.Stat(ownerPath); os.IsNotExist(err) {
+		return AtomicWrite(ownerPath, []byte(ownerSID))
+	}
+	return nil
 }
 func Protect(b []byte) ([]byte, error) {
 	in := windows.DataBlob{Size: uint32(len(b))}

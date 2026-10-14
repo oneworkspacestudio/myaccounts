@@ -79,6 +79,10 @@ func serveEngine(port int) {
 				w.Write([]byte(`{"status":"ok"}`))
 				return
 			}
+			if r.URL.Path == "/operations" && r.Method == "GET" {
+				http.Redirect(w, r, "/api/myaccounts/console", http.StatusSeeOther)
+				return
+			}
 			if r.URL.Path == "/internal/shutdown" {
 				if r.Host != local || r.Method != "POST" || os.Getenv("MYACCOUNTS_SHUTDOWN") == "" || r.Header.Get("X-Shutdown-Token") != os.Getenv("MYACCOUNTS_SHUTDOWN") {
 					http.NotFound(w, r)

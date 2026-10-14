@@ -776,6 +776,12 @@ func IsSigninPending(user *User) (bool, error) {
 }
 
 func IsNeedPromptMfa(org *Organization, user *User) bool {
+	if user != nil {
+		required, err := IsGroupMfaRequired(user)
+		if err != nil || required && user.TotpSecret == "" {
+			return true
+		}
+	}
 	if org == nil || user == nil {
 		return false
 	}

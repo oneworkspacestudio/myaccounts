@@ -14,7 +14,7 @@ Portable, self-hosted identity and OpenID Connect for Windows, powered by Casdoo
    ```
 
 3. Create your administrator with your own password. Choose local-only mode initially, or configure a public HTTPS issuer and tunnel.
-4. Sign in using the administrator email. Manage users, organizations, groups, roles, applications, security and providers using the Casdoor-backed dashboard.
+4. Sign in using the administrator email. Manage users, organizations, groups, roles, applications, security and providers using the Casdoor-backed dashboard. Keep the built-in organization for global administrators; create ordinary users in the initialized MyAccounts organization. Normal-user entry: `/login/myaccounts`. Server/backup controls: `/operations`.
 5. Configure an SMTP provider and use its test-email action before enabling account signup or recovery. The initial application has signup disabled.
 
 Local default: `http://localhost:8788`. Data defaults to `data/` beside the executable; `-data` or `MYACCOUNTS_DATA` overrides it. If that location is unwritable or lacks Windows permissions, interactive mode opens a native folder picker. Choose an NTFS location; a dedicated `MyAccounts/data` folder is created beneath it and its location is remembered beside the EXE. Flags precede subcommands. `-no-browser` is intended for an already configured installation. The first-run wizard is bound exclusively to IPv4 loopback.

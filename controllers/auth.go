@@ -613,16 +613,27 @@ func (c *ApiController) promptMfaSetupAfterMfa(user *object.User) bool {
 }
 
 func checkMfaEnable(c *ApiController, user *object.User, organization *object.Organization, verificationType string) bool {
-	if user.IsMfaEnabled() && !object.IsMfaRemembered(user, c.Ctx.GetCookie(object.MfaRememberCookieName)) {
+	groupRequired, policyError := object.IsGroupMfaRequired(user)
+	if policyError != nil {
+		c.ResponseError("Cannot evaluate group security policy")
+		return true
+	}
+	if user.IsMfaEnabled() && (groupRequired || !object.IsMfaRemembered(user, c.Ctx.GetCookie(object.MfaRememberCookieName))) {
 		c.setMfaUserSession(user.GetId())
 		mfaList := object.GetAllMfaProps(user, true)
 		mfaAllowList := []*object.MfaProps{}
 		mfaRememberInHours := organization.MfaRememberInHours
 		for _, prop := range mfaList {
+			if groupRequired && prop.MfaType != object.TotpType {
+				continue
+			}
 			if prop.MfaType == verificationType || !prop.Enabled {
 				continue
 			}
 			prop.MfaRememberInHours = mfaRememberInHours
+			if groupRequired {
+				prop.MfaRememberInHours = 0
+			}
 			mfaAllowList = append(mfaAllowList, prop)
 		}
 		if len(mfaAllowList) >= 1 {
@@ -1445,6 +1456,15 @@ func (c *ApiController) Login() {
 			return
 		}
 
+		groupRequired, policyError := object.IsGroupMfaRequired(user)
+		if policyError != nil {
+			c.ResponseError("Cannot evaluate group security policy")
+			return
+		}
+		if groupRequired && authForm.RecoveryCode == "" && authForm.MfaType != object.TotpType {
+			c.ResponseError("Authenticator factor required by group policy")
+			return
+		}
 		if authForm.Passcode != "" {
 			if authForm.MfaType == c.GetSession("verificationCodeType") {
 				c.ResponseError("Invalid multi-factor authentication type")

@@ -1,4 +1,4 @@
-param([Parameter(Mandatory=$true)][string]$Exe,[string]$Root,[switch]$OIDC)
+param([Parameter(Mandatory=$true)][string]$Exe,[string]$Root,[switch]$OIDC,[string]$Checks="all")
 $ErrorActionPreference='Stop'
 $Exe=(Resolve-Path -LiteralPath $Exe).Path
 if (!$Root) { $Root=Join-Path ([System.IO.Path]::GetTempPath()) ('myaccounts-smoke-'+[Guid]::NewGuid()) }
@@ -47,8 +47,11 @@ try {
   $env:MYACCOUNTS_TEST_ISSUER=$origin
   $env:MYACCOUNTS_TEST_PASSWORD=$password
   try {
-   node (Join-Path $PSScriptRoot '../integration/oidc.mjs');if($LASTEXITCODE){throw 'Independent OIDC test failed'}
-   node (Join-Path $PSScriptRoot '../integration/mfa.mjs');if($LASTEXITCODE){throw 'Independent MFA test failed'}
+   if($Checks -eq 'all' -or $Checks -eq 'oidc'){node (Join-Path $PSScriptRoot '../integration/oidc.mjs');if($LASTEXITCODE){throw 'Independent OIDC test failed'}}
+   if($Checks -eq 'all' -or $Checks -eq 'mfa'){node (Join-Path $PSScriptRoot '../integration/mfa.mjs');if($LASTEXITCODE){throw 'Independent MFA test failed'}}
+   if($Checks -eq 'all' -or $Checks -eq 'operations'){node (Join-Path $PSScriptRoot '../integration/operations.mjs');if($LASTEXITCODE){throw 'Operations test failed'}}
+   if($Checks -eq 'all' -or $Checks -eq 'group-mfa'){node (Join-Path $PSScriptRoot '../integration/group-mfa.mjs');if($LASTEXITCODE){throw 'Group MFA test failed'}}
+   if($Checks -eq 'all' -or $Checks -eq 'sessions'){node (Join-Path $PSScriptRoot '../integration/sessions.mjs');if($LASTEXITCODE){throw 'Session revocation test failed'}}
    if($env:MYACCOUNTS_FILEBROWSER_EXE){$env:MYACCOUNTS_FILEBROWSER_DATA=Join-Path $Root 'filebrowser-integration';node (Join-Path $PSScriptRoot '../integration/filebrowser.mjs');if($LASTEXITCODE){throw 'FileBrowser integration failed'}}
    if($env:MYACCOUNTS_GITEA_EXE){$env:MYACCOUNTS_GITEA_DATA=Join-Path $Root 'gitea-integration';node (Join-Path $PSScriptRoot '../integration/gitea.mjs');if($LASTEXITCODE){throw 'Gitea integration failed'}}
   } finally {Remove-Item Env:MYACCOUNTS_TEST_PASSWORD;Remove-Item Env:MYACCOUNTS_TEST_ISSUER}

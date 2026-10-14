@@ -290,6 +290,18 @@ export default function LoginPage({type = "login", application: applicationProp,
   const [msg, setMsg] = React.useState<string | null>(null);
   const [loginMethod, setLoginMethod] = React.useState<LoginMethod | undefined>(undefined);
   const [username, setUsername] = React.useState("");
+  const [passwordStep, setPasswordStep] = React.useState(false);
+  const [rememberIdentifier, setRememberIdentifier] = React.useState(false);
+  const [savedAccounts, setSavedAccounts] = React.useState<{organization: string; identifier: string}[]>(() => {
+    try {
+      const items = JSON.parse(localStorage.getItem("myaccounts.saved-identifiers") || "[]");
+      return Array.isArray(items) ? items.filter((a: any) => typeof a?.organization === "string" && typeof a?.identifier === "string" && a.identifier.length <= 254).slice(0, 5) : [];
+    } catch { return []; }
+  });
+  const saveIdentifiers = (items: {organization: string; identifier: string}[]) => {
+    setSavedAccounts(items);
+    try { localStorage.setItem("myaccounts.saved-identifiers", JSON.stringify(items)); } catch { /* Storage can be unavailable in private browsing. */ }
+  };
   const [countryCode, setCountryCode] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [code, setCode] = React.useState("");
@@ -527,6 +539,11 @@ export default function LoginPage({type = "login", application: applicationProp,
   };
 
   const handleLoginResult = (res: any, values: any, authParams: any) => {
+    if (rememberIdentifier && username.trim() && res.status === "ok") {
+      const organization = application.organization;
+      const identifier = username.trim();
+      saveIdentifiers([{organization, identifier}, ...savedAccounts.filter(a => a.organization !== organization || a.identifier !== identifier)].slice(0, 5));
+    }
     const responseType = values["type"];
     const responseTypes = String(responseType).split(" ");
 
@@ -917,6 +934,12 @@ export default function LoginPage({type = "login", application: applicationProp,
 
   const submit = (e?: React.FormEvent) => {
     e?.preventDefault();
+    if (loginMethod === "password" && !passwordStep) {
+      if (!username.trim()) { setSigninErrors({username: "Enter your email or username"}); return; }
+      setPasswordStep(true);
+      setTimeout(() => document.getElementById("password")?.focus(), 0);
+      return;
+    }
     const found = validateSignin();
     setSigninErrors(found);
     const firstError = Object.values(found)[0];
@@ -1376,6 +1399,9 @@ export default function LoginPage({type = "login", application: applicationProp,
         </div>
       );
     case "Username":
+      if (loginMethod === "password" && passwordStep) {
+        return <div key={key} className="flex items-center justify-between gap-3 rounded-xl border p-3"><span className="min-w-0 truncate">{username}</span><Button type="button" variant="ghost" onClick={() => {setPasswordStep(false); setPassword(""); setSigninErrors({});}}>Change account</Button></div>;
+      }
       if (loginMethod === "wechat") {
         return <WeChatLoginPanel key={key} application={application} />;
       }
@@ -1416,7 +1442,7 @@ export default function LoginPage({type = "login", application: applicationProp,
       return (
         <div key={key} className="login-username space-y-2">
           <Label htmlFor="username">
-            {item.label || (isCodeMethod || loginMethod === "magicLink" ? getUsernameLabel(loginMethod) : i18next.t("signup:Username"))}
+            {item.label || (loginMethod === "password" ? "Email or username" : isCodeMethod || loginMethod === "magicLink" ? getUsernameLabel(loginMethod) : i18next.t("signup:Username"))}
           </Label>
           <Input
             id="username"
@@ -1439,6 +1465,7 @@ export default function LoginPage({type = "login", application: applicationProp,
       }
       return renderCodeInput(item);
     case "Password":
+      if (loginMethod === "password" && !passwordStep) { return null; }
       if (isPanelMethod || loginMethod === "webAuthn" || loginMethod === "faceId" || loginMethod === "magicLink") {
         return null;
       }
@@ -1463,6 +1490,7 @@ export default function LoginPage({type = "login", application: applicationProp,
         </div>
       );
     case "Forgot password?":
+      if (loginMethod === "password" && !passwordStep) { return null; }
       if (loginMethod === "magicLink") {
         return null;
       }
@@ -1506,7 +1534,7 @@ export default function LoginPage({type = "login", application: applicationProp,
       return (
         <div key={key} className="login-button-box space-y-3">
           <Button type="submit" className="login-button w-full" loading={loading}>
-            {loginMethod === "webAuthn"
+            {loginMethod === "password" && !passwordStep ? "Next" : loginMethod === "webAuthn"
               ? i18next.t("login:Sign in with WebAuthn")
               : loginMethod === "faceId"
                 ? i18next.t("login:Sign in with Face ID")
@@ -1612,7 +1640,9 @@ export default function LoginPage({type = "login", application: applicationProp,
 
         {showForm ? (
           <form className="space-y-4" onSubmit={submit}>
+            {loginMethod === "password" && !passwordStep && savedAccounts.some(a => a.organization === application.organization) ? <div className="space-y-2" aria-label="Saved accounts on this device"><p className="text-sm text-muted-foreground">Choose an account or enter another email</p>{savedAccounts.filter(a => a.organization === application.organization).map(a => <div key={a.identifier} className="flex gap-2"><Button type="button" variant="outline" className="min-w-0 flex-1 justify-start truncate" onClick={() => {setUsername(a.identifier); setPasswordStep(true); setPassword(""); setRememberIdentifier(true);}}>{a.identifier}</Button><Button type="button" variant="ghost" aria-label={`Remove saved account ${a.identifier}`} onClick={() => saveIdentifiers(savedAccounts.filter(value => value !== a))}>Remove</Button></div>)}</div> : null}
             {signinItems.map(renderSigninItem)}
+            {loginMethod === "password" && passwordStep ? <div className="flex items-center gap-2"><Checkbox id="rememberIdentifier" checked={rememberIdentifier} onCheckedChange={value => setRememberIdentifier(value === true)} /><Label htmlFor="rememberIdentifier" className="text-sm font-normal">Remember this account on this device</Label></div> : null}
           </form>
         ) : (
           <div className="space-y-4">

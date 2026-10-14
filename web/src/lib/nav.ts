@@ -145,6 +145,7 @@ export function getNavGroups(account: Account | null | undefined): NavGroup[] {
 
   const adminItems: NavItem[] = [];
   if (Setting.isAdminUser(account)) {
+    adminItems.push({key:"/operations",label:"MyAccounts server",href:"/operations"});
     adminItems.push({key: "/sysinfo", label: i18next.t("general:System Info")});
   }
   adminItems.push(

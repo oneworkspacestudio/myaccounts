@@ -10,6 +10,9 @@ permissions:
 jobs:
   windows:
     runs-on: windows-latest
+    env:
+      CGO_ENABLED: '0'
+      GODEBUG: http2client=0
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -24,8 +27,20 @@ jobs:
           cd web
           npx --yes yarn@1.22.22 install --frozen-lockfile --ignore-scripts
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          npx --yes yarn@1.22.22 typecheck
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
           npx --yes yarn@1.22.22 build
           exit $LASTEXITCODE
+      - name: Download pinned Go modules
+        shell: pwsh
+        run: |
+          $downloaded=$false
+          for ($attempt=0; $attempt -lt 3; $attempt++) {
+            go mod download
+            if (!$LASTEXITCODE) { $downloaded=$true; break }
+            Start-Sleep -Seconds 5
+          }
+          if (!$downloaded) { throw 'Pinned module download failed after retries' }
       - name: Test and build
         shell: pwsh
         run: |

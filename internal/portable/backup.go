@@ -68,10 +68,10 @@ func Backup(dir, output, password string) error {
 		if sourceSize > 512<<20 {
 			return errors.New("backup exceeds the 512 MiB portable restore limit")
 		}
-		if strings.HasSuffix(rel, ".lock") {
+		if rel == ".owner-sid" || strings.HasSuffix(rel, ".lock") {
 			return nil
 		}
-		if filepath.ToSlash(rel) == "secrets/control.dpapi" {
+		if filepath.ToSlash(rel) == "secrets/control.dpapi" || filepath.ToSlash(rel) == "secrets/setup-url.dpapi" || filepath.ToSlash(rel) == "secrets/backup-passphrase.dpapi" || filepath.ToSlash(rel) == "secrets/migration-key.dpapi" {
 			return nil
 		}
 		if filepath.ToSlash(rel) == "secrets/tunnel.dpapi" {

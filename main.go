@@ -270,12 +270,27 @@ func entry() error {
 		cancel()
 		return runService(exe, *dir)
 	}
+	explicitPort := false
+	flags.Visit(func(f *flag.Flag) {
+		if f.Name == "port" {
+			explicitPort = true
+		}
+	})
+	if !explicitPort && !*noBrowser {
+		if _, loadError := portable.Load(*dir); os.IsNotExist(loadError) {
+			chosen, e := portable.AvailablePort(*port)
+			if e != nil {
+				return e
+			}
+			*port = chosen
+		}
+	}
 	return launch(ctx, exe, *dir, *port, !*noBrowser)
 }
 func openBrowser(url string) {
 	_ = exec.Command("rundll32.exe", "url.dll,FileProtocolHandler", url).Start()
 }
-func launch(ctx context.Context, exe, dir string, port int, browser bool) error {
+func launch(ctx context.Context, exe, dir string, port int, browser bool) (result error) {
 	c, e := portable.Load(dir)
 	if os.IsNotExist(e) {
 		if !browser {
@@ -290,6 +305,20 @@ func launch(ctx context.Context, exe, dir string, port int, browser bool) error 
 	if e != nil {
 		return e
 	}
+	guard, e := portable.PrepareUpgrade(dir, exe, version)
+	if e != nil {
+		return fmt.Errorf("pre-upgrade recovery snapshot failed: %w", e)
+	}
+	accepted := false
+	defer func() {
+		if !accepted && guard.HasSnapshot() {
+			if e := guard.Rollback(); e != nil {
+				result = fmt.Errorf("%w; rollback unavailable: %v", result, e)
+			} else {
+				result = fmt.Errorf("%w; prior database restored; run the previous executable", result)
+			}
+		}
+	}()
 	if e = extractAssets(dir); e != nil {
 		return e
 	}
@@ -308,7 +337,7 @@ func launch(ctx context.Context, exe, dir string, port int, browser bool) error 
 	defer os.Remove(controlPath)
 	cmd := exec.Command(exe, "__engine")
 	cmd.Dir = dir
-	cmd.Env = append(os.Environ(), "MYACCOUNTS_SHUTDOWN="+shutdownToken)
+	cmd.Env = append(os.Environ(), "MYACCOUNTS_SHUTDOWN="+shutdownToken, "MYACCOUNTS_VERSION="+version)
 	out := &lumberjack.Logger{Filename: filepath.Join(dir, "logs", "identity.log"), MaxSize: 10, MaxBackups: 5, MaxAge: 30}
 	defer out.Close()
 	cmd.Stdout = out
@@ -341,11 +370,27 @@ func launch(ctx context.Context, exe, dir string, port int, browser bool) error 
 	}
 	if !ready {
 		_ = cmd.Process.Kill()
+		<-done
 		return errors.New("identity startup timed out; inspect logs/identity.log")
+	}
+	if e = guard.Commit(); e != nil {
+		_ = cmd.Process.Kill()
+		<-done
+		return e
+	}
+	accepted = true
+	if browser && c.InstallServiceRequested {
+		c.InstallServiceRequested = false
+		if e = portable.Save(dir, c); e != nil {
+			log.Print("Service preference could not be saved; interactive mode remains available")
+		} else if e = portable.RequestServiceInstallation(exe, dir); e != nil {
+			log.Print("Automatic service installation was not approved; interactive mode remains available")
+		}
 	}
 	if browser {
 		openBrowser(local)
 	}
+	go portable.RunScheduledBackups(ctx, dir)
 	tunnelCtx, stopTunnel := context.WithCancel(ctx)
 	defer stopTunnel()
 	if c.TunnelMode == "token" {
@@ -443,7 +488,7 @@ func (d *daemon) Stop(service.Service) error {
 	}
 }
 func serviceConfig(exe, dir string) *service.Config {
-	return &service.Config{Name: "MyAccounts", DisplayName: "MyAccounts Identity", Description: "Portable identity and OpenID Connect", Executable: exe, Arguments: []string{"-data", dir, "-no-browser", "run-service"}, WorkingDirectory: filepath.Dir(exe)}
+	return &service.Config{Name: "MyAccounts", DisplayName: "MyAccounts Identity", Description: "Portable identity and OpenID Connect", Executable: exe, Arguments: []string{"-data", dir, "-no-browser", "run-service"}, WorkingDirectory: filepath.Dir(exe), Option: service.KeyValue{"DelayedAutoStart": true, "OnFailure": "restart", "OnFailureDelayDuration": "10s", "OnFailureResetPeriod": 60}}
 }
 func runService(exe, dir string) error {
 	s, e := service.New(&daemon{exe: exe, dir: dir}, serviceConfig(exe, dir))
@@ -457,10 +502,10 @@ func controlService(exe, dir string, args []string) error {
 		return errors.New("usage: service install|start|stop|uninstall")
 	}
 	action := args[0]
-	if action != "install" && action != "start" && action != "stop" && action != "uninstall" {
+	if action != "install-start" && action != "install" && action != "start" && action != "stop" && action != "uninstall" {
 		return errors.New("unknown service action")
 	}
-	if action == "install" {
+	if action == "install" || action == "install-start" {
 		if _, e := portable.Load(dir); e != nil {
 			return errors.New("complete setup before installing the service")
 		}
@@ -468,6 +513,18 @@ func controlService(exe, dir string, args []string) error {
 	s, e := service.New(&daemon{exe: exe, dir: dir}, serviceConfig(exe, dir))
 	if e != nil {
 		return e
+	}
+	if action == "install-start" {
+		if e = s.Install(); e != nil {
+			return e
+		}
+		if _, e = os.Stat(filepath.Join(dir, "secrets", "control.dpapi")); e == nil {
+			stop := exec.Command(exe, "-data", dir, "stop")
+			if e = stop.Run(); e != nil {
+				return errors.New("service installed; stop the interactive instance before starting it")
+			}
+		}
+		return s.Start()
 	}
 	return service.Control(s, action)
 }

@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 	"time"
 )
@@ -21,21 +22,25 @@ import (
 var setupFiles embed.FS
 
 type SetupRequest struct {
-	SMTPHost     string `json:"smtpHost"`
-	SMTPUsername string `json:"smtpUsername"`
-	SMTPPassword string `json:"smtpPassword"`
-	SMTPFrom     string `json:"smtpFrom"`
-	Name         string `json:"name"`
-	Email        string `json:"email"`
-	Password     string `json:"password"`
-	Confirm      string `json:"confirm"`
-	Issuer       string `json:"issuer"`
-	Mode         string `json:"mode"`
-	TunnelToken  string `json:"tunnelToken"`
-	APIToken     string `json:"apiToken"`
-	AccountID    string `json:"accountId"`
-	ZoneID       string `json:"zoneId"`
-	Authorize    string `json:"authorize"`
+	InstallService string `json:"installService"`
+	RootDomain     string `json:"rootDomain"`
+	Subdomain      string `json:"subdomain"`
+	SMTPPort       int    `json:"smtpPort"`
+	SMTPHost       string `json:"smtpHost"`
+	SMTPUsername   string `json:"smtpUsername"`
+	SMTPPassword   string `json:"smtpPassword"`
+	SMTPFrom       string `json:"smtpFrom"`
+	Name           string `json:"name"`
+	Email          string `json:"email"`
+	Password       string `json:"password"`
+	Confirm        string `json:"confirm"`
+	Issuer         string `json:"issuer"`
+	Mode           string `json:"mode"`
+	TunnelToken    string `json:"tunnelToken"`
+	APIToken       string `json:"apiToken"`
+	AccountID      string `json:"accountId"`
+	ZoneID         string `json:"zoneId"`
+	Authorize      string `json:"authorize"`
 }
 
 func RandomToken() string {
@@ -51,7 +56,27 @@ func Setup(ctx context.Context, dir string, port int, open func(string)) error {
 	var mu sync.Mutex
 	complete := false
 	origin := fmt.Sprintf("http://localhost:%d", port)
+	// Keep unattended setup access inside the already protected data boundary.
+	link, e := Protect([]byte(origin + "/#" + token))
+	if e != nil {
+		return e
+	}
+	linkPath := filepath.Join(dir, "secrets", "setup-url.dpapi")
+	if e = AtomicWrite(linkPath, link); e != nil {
+		return e
+	}
+	defer os.Remove(linkPath)
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /setup-info", func(w http.ResponseWriter, r *http.Request) {
+		var defaults struct {
+			Domain string `json:"domain"`
+		}
+		if b, e := os.ReadFile(filepath.Join(dir, "setup-defaults.json")); e == nil {
+			_ = json.Unmarshal(b, &defaults)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{"os": runtime.GOOS, "architecture": runtime.GOARCH, "dataPath": dir, "protectedStorage": true, "suggestedDomain": defaults.Domain, "connectorSeparate": true})
+	})
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
 			http.NotFound(w, r)
@@ -81,12 +106,24 @@ func Setup(ctx context.Context, dir string, port int, open func(string)) error {
 			return
 		}
 		if len(p.Password) < 12 || len(p.Password) > 128 || p.Password != p.Confirm {
-			http.Error(w, "passwords must match and contain 12â€“128 characters", 400)
+			http.Error(w, "passwords must match and contain 12 to 128 characters", 400)
 			return
 		}
 		if p.Mode != "local" && p.Mode != "manual" && p.Mode != "token" && p.Mode != "api" {
 			http.Error(w, "invalid connection method", 400)
 			return
+		}
+		if p.Mode != "local" && p.RootDomain != "" {
+			canonical, e := DomainIssuer(p.RootDomain, p.Subdomain)
+			if e != nil {
+				http.Error(w, e.Error(), 400)
+				return
+			}
+			if p.Issuer != "" && p.Issuer != canonical {
+				http.Error(w, "domain and issuer disagree", 400)
+				return
+			}
+			p.Issuer = canonical
 		}
 		if p.Mode == "local" {
 			p.Issuer = origin
@@ -95,7 +132,7 @@ func Setup(ctx context.Context, dir string, port int, open func(string)) error {
 			http.Error(w, "tunnel token is required", 400)
 			return
 		}
-		c := Config{Version: 1, Issuer: p.Issuer, Port: port, Email: p.Email, Name: p.Name, TunnelMode: p.Mode}
+		c := Config{Version: 1, Issuer: p.Issuer, Port: port, Email: p.Email, Name: p.Name, TunnelMode: p.Mode, InstallServiceRequested: p.InstallService == "on"}
 		if e := Validate(c); e != nil {
 			http.Error(w, e.Error(), 400)
 			return
