@@ -6,7 +6,7 @@ Portable, self-hosted identity and OpenID Connect for Windows, powered by Casdoo
 
 ## Run
 
-1. Obtain the built `MyAccounts-windows-amd64.exe` and verify its SHA256.
+1. Download the [verified development preview](https://github.com/fahimc/myaccounts/releases/tag/preview-20261014.1) (sign in to access the private repository), then verify `MyAccounts-windows-amd64.exe` against `SHA256SUMS.txt`.
 2. Put it in a writable folder. Double-click to open the local setup wizard, or choose an NTFS data location:
 
    ```powershell

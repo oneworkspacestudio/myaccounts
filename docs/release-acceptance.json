@@ -49,8 +49,8 @@
     },
     {
       "name": "GitHub authorization repository CI release",
-      "passed": false,
-      "evidence": "Private fahimc/myaccounts source pushed; CI native build/smoke passed; final audit/artifact and development preview under verification"
+      "passed": true,
+      "evidence": "Private source pushed; preview-20261014.1 CI 38590999214 Windows/audit/release all succeeded, published evaluation preview; downloaded/installed SHA256 78957576b48be9b142822fe35d769dd69c0eda66f703eca9fe8e46c8fc7c2b59 verified. Full v0.1.0 remains blocked by other gates."
     }
   ]
 }
