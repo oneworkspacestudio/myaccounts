@@ -19,7 +19,7 @@ Complete setup interactively first. From an elevated terminal:
 .\MyAccounts-windows-amd64.exe -data F:\MyAccounts\data service uninstall
 ```
 
-Installation uses kardianos/service and normal Windows elevation. The application does not silently request UAC elevation. A configured installation is required; service startup never exposes a first-run wizard. Check `logs/launcher.log` and `logs/identity.log`. Launcher and identity output rotate at 10 MiB with five backups and 30-day retention. Casdoor also maintains its own configured operational log and database audit records.
+The setup wizard offers automatic Windows startup. Selecting it requests UAC, installs delayed automatic startup with restart-on-failure, stops the interactive launcher and starts the service. Leaving it unchecked needs no elevation. A configured installation is required; service startup never exposes a first-run wizard. The protected owner SID preserves the configuring user's access when SYSTEM starts the service. Check `logs/launcher.log` and `logs/identity.log`. Launcher and identity output rotate at 10 MiB with five backups and 30-day retention. Casdoor also maintains operational logs and database audit records. Actual service/reboot verification is still pending.
 
 ## Cloudflare
 
@@ -46,7 +46,11 @@ For an interactive instance, run `MyAccounts-windows-amd64.exe -data F:\MyAccoun
 
 Restore refuses any existing destination. It authenticates the archive before extraction, rejects unsafe paths and symlinks, enforces a 512 MiB limit, stages into a protected folder, validates configuration and presence of the database, then renames the staged folder into place. Signing keys and stable user IDs remain in the database. SQLite quick_check validates database integrity before backup and restore. The tunnel token is re-protected for the destination Windows machine; no plaintext credential file remains after restore. A real cross-machine restore test is still required.
 
-Inspect the restored folder and test locally before switching the service data path. Keep the old folder as rollback until identities, applications and issuer are verified. Backups omit logs, temporary sessions, extracted web assets and previous backups. Scheduled encrypted backups are not implemented yet.
+Inspect the restored folder and test locally before switching the service data path. Keep the old folder as rollback until identities, applications and issuer are verified. Backups omit logs, temporary sessions, extracted web assets and previous backups. Machine-bound schedule/migration/owner credentials are also omitted; configure a backup schedule again on the restored machine.
+
+## Online and scheduled backups
+
+Sign in as a global administrator and open `/operations`. The server console provides health, HTTPS verification, backup download, release checking and schedules (hourly, six-hourly, daily or weekly). Online backups use SQLite `VACUUM INTO` to include committed WAL transactions, then authenticate and encrypt the snapshot with age. A real scheduled firing and native restore passed on a disposable installation. The launcher must be running for the schedule to fire. Keep the passphrase separately; Windows protects a local copy for scheduled execution. Backups are retained until you remove them; monitor available disk space.
 
 ## Verification, token recovery and updates
 
@@ -61,4 +65,10 @@ Stop the application before replacing its operational tunnel token. Obtain a new
 
 `update-check` reads the latest published GitHub release and never installs anything. A private repository may require a read-authorized token supplied as `MYACCOUNTS_GITHUB_TOKEN`; it is not persisted. No release or missing access produces a clear error. Release checking does not approve applying an update.
 
-Stop the service, make and verify an encrypted backup, preserve the previous EXE, then replace only the EXE. The data path and issuer must remain unchanged. Startup refreshes frontend files and the generated engine configuration. Upstream table synchronization performs schema updates; automatic migration rollback is not yet implemented. If a migration fails, restore into a fresh folder and run the previous EXE against it. Never downgrade a changed database without a verified snapshot. Use the explicit update-check command; automatic installation is not implemented.
+Stop the service, make and verify an encrypted backup, preserve the previous EXE, then replace only the EXE. The data path and issuer must remain unchanged. Before starting a changed executable, the launcher takes a protected encrypted upgrade snapshot. It commits the executable marker only after local health succeeds. A failed startup restores the previous database under the engine lock and quarantines changed DB/WAL files in protected backups; run the saved previous EXE after investigating the failure. Failed-migration identity recovery and a healthy live upgrade passed. This does not establish physical power-loss durability. Never downgrade a changed database without a verified snapshot. Automatic executable installation is not implemented.
+
+## Email and signing keys
+
+Every installation asks for its own domain, Cloudflare method and optional SMTP credentials at execution. The first-run email test supports certificate-validated implicit TLS on port 465; additional SMTP settings are available in Providers after login. An email address and root domain do not establish a working SMTP server. Keep signup and recovery disabled until a real test message arrives. Use the separate `myaccounts` organization for normal users; every built-in user is a global administrator.
+
+For key rotation, create a new certificate, allow relying parties time to refresh JWKS, then select it for the application. Keep the old verification certificate until its issued tokens expire and clients have refreshed. Immediate activation can fail in clients that recently cached JWKS. The independent-client test verified the new signature with refreshed discovery, overlapping public keys, unchanged subject and old-token UserInfo. Consent removal prompts again on later authorization; it does not establish immediate invalidation of an already issued token or a relying party's session.

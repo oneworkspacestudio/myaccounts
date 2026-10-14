@@ -39,6 +39,22 @@ const user=await oidc.fetchUserInfo(config,tokens.access_token,claims.sub);asser
 await assert.rejects(()=>oidc.authorizationCodeGrant(config,responseUrl(valid),{expectedState:valid.state,expectedNonce:valid.nonce,pkceCodeVerifier:valid.verifier}),'Code replay accepted');
 const nonceFlow=await getCode();assert.equal(nonceFlow.response.status,'ok');await assert.rejects(()=>oidc.authorizationCodeGrant(config,responseUrl(nonceFlow),{expectedState:nonceFlow.state,expectedNonce:'incorrect-nonce',pkceCodeVerifier:nonceFlow.verifier}),'Nonce mismatch accepted');
 const stateFlow=await getCode();assert.equal(stateFlow.response.status,'ok');await assert.rejects(()=>oidc.authorizationCodeGrant(config,responseUrl(stateFlow),{expectedState:'incorrect-state',expectedNonce:stateFlow.nonce,pkceCodeVerifier:stateFlow.verifier}),'State mismatch accepted');
+// Add a replacement key without deleting the old verification key during overlap.
+const keyName='rotation-'+randomBytes(8).toString('hex');
+assert.equal((await api('/api/add-cert',{owner:'admin',name:keyName,displayName:'Isolated rotation key',scope:'JWT',type:'x509',cryptoAlgorithm:'RS256',bitSize:4096,expireInYears:10})).status,'ok','Signing key creation');
+assert.equal((await api('/api/update-application?id=admin/'+clientId+'&columns=cert',{...app,cert:keyName})).status,'ok','Signing key rotation');app.cert=keyName;
+const keyFlow=await getCode();assert.equal(keyFlow.response.status,'ok');
+// A fresh relying-party discovery models a client after its JWKS refresh window.
+// Existing clients may retain keys briefly: publish before activating a new key.
+const refreshed=await oidc.discovery(new URL(issuer),clientId,secret,oidc.ClientSecretPost(secret),{execute:[oidc.allowInsecureRequests,oidc.enableNonRepudiationChecks]});
+const keyTokens=await oidc.authorizationCodeGrant(refreshed,responseUrl(keyFlow),{expectedState:keyFlow.state,expectedNonce:keyFlow.nonce,pkceCodeVerifier:keyFlow.verifier});
+assert.equal(keyTokens.claims().sub,claims.sub,'Key rotation changed identity');
+const header=token=>JSON.parse(Buffer.from(token.split('.')[0],'base64url'));
+assert.notEqual(header(keyTokens.id_token).kid,header(tokens.id_token).kid,'Signing key did not change');
+const overlap=await (await fetch(config.serverMetadata().jwks_uri)).json();
+assert(overlap.keys.some(k=>k.kid===header(tokens.id_token).kid),'Old verification key disappeared before tokens expired');
+assert(overlap.keys.some(k=>k.kid===header(keyTokens.id_token).kid),'New verification key missing from JWKS');
+assert.equal((await oidc.fetchUserInfo(config,tokens.access_token,claims.sub)).sub,claims.sub,'Old access token failed during key overlap');
 const rotatedSecret=randomBytes(32).toString('hex');assert.equal((await api('/api/update-application?id=admin/'+clientId+'&columns=clientSecret',{...app,clientSecret:rotatedSecret})).status,'ok','Secret rotation');
 const afterRotation=await getCode();assert.equal(afterRotation.response.status,'ok');await assert.rejects(()=>oidc.authorizationCodeGrant(config,responseUrl(afterRotation),{expectedState:afterRotation.state,expectedNonce:afterRotation.nonce,pkceCodeVerifier:afterRotation.verifier}),'Old client secret accepted');
-console.log('PASS: independent openid-client discovery, code + PKCE, JWKS signature, nonce/state, UserInfo, redirect refusal, replay refusal, secret rotation');
+console.log('PASS: independent openid-client discovery, code + PKCE, JWKS signature, nonce/state, UserInfo, redirect/replay refusal, client-secret and overlapping signing-key rotation');

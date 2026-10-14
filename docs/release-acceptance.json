@@ -15,17 +15,17 @@
     {
       "name": "accounts profiles MFA recovery and sessions",
       "passed": false,
-      "evidence": "Password/profile/TOTP/recovery, inherited group mandate and selected/all issuer sessions passed; real SMTP recovery and passkey ceremony pending"
+      "evidence": "Password/profile/TOTP/recovery, group mandate, selected/all sessions and virtual-authenticator passkeys passed; real SMTP verification/reset pending"
     },
     {
       "name": "independent OIDC client",
       "passed": true,
-      "evidence": "openid-client 6.8.8: code/PKCE, JWKS signature, nonce/state, UserInfo, redirect/verifier/code replay refusal and secret rotation passed"
+      "evidence": "openid-client: code/PKCE, signature, nonce/state, UserInfo, invalid redirect/verifier/replay, client-secret and overlapping signing-key rotation; browser consent allow/deny/removal passed"
     },
     {
       "name": "FileBrowser Quantum and Gitea",
       "passed": true,
-      "evidence": "Disposable native FileBrowser drive-office-v0.3.1 and official Gitea 28.1.0: real redirect/callback, stable-sub account and normal-user authorization passed"
+      "evidence": "Native FileBrowser drive-office-v0.4.0 and official Gitea 28.1.0 real callbacks/stable-sub/normal roles; both live Drive previews passed; Node/Python browser examples passed"
     },
     {
       "name": "authorized Cloudflare and public HTTPS",
@@ -40,7 +40,7 @@
     {
       "name": "encrypted backup and no-data-loss upgrade",
       "passed": false,
-      "evidence": "Native/online WAL backup/restore and failed-migration original identity recovery passed; live upgrade healthy; cross-machine/scheduled firing pending"
+      "evidence": "Native/online WAL backup/restore, scheduled firing/authenticated restore, failed-migration identity recovery and live upgrade passed; cross-machine/power-loss pending"
     },
     {
       "name": "security regression and dependency audit",
@@ -50,7 +50,7 @@
     {
       "name": "GitHub authorization repository CI release",
       "passed": false,
-      "evidence": "Private fahimc/myaccounts created and main pushed; first CI proxy download failure fixed in source; successful CI/release pending"
+      "evidence": "Private fahimc/myaccounts source pushed; CI native build/smoke passed; final audit/artifact and development preview under verification"
     }
   ]
 }

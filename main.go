@@ -202,6 +202,12 @@ func entry() error {
 		return e
 	}
 	if !ok {
+		if !*noBrowser && len(args) == 0 {
+			if c, loadErr := portable.Load(*dir); loadErr == nil {
+				openBrowser(fmt.Sprintf("http://localhost:%d", c.Port))
+				return nil
+			}
+		}
 		return errors.New("another MyAccounts instance owns this data directory")
 	}
 	defer lock.Unlock()

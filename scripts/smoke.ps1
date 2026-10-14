@@ -46,17 +46,27 @@ try {
  if ($OIDC) {
   $env:MYACCOUNTS_TEST_ISSUER=$origin
   $env:MYACCOUNTS_TEST_PASSWORD=$password
+  $env:MYACCOUNTS_FIXTURE=$Root
+  $env:MYACCOUNTS_EXE=$Exe
   try {
    if($Checks -eq 'all' -or $Checks -eq 'oidc'){node (Join-Path $PSScriptRoot '../integration/oidc.mjs');if($LASTEXITCODE){throw 'Independent OIDC test failed'}}
    if($Checks -eq 'all' -or $Checks -eq 'mfa'){node (Join-Path $PSScriptRoot '../integration/mfa.mjs');if($LASTEXITCODE){throw 'Independent MFA test failed'}}
    if($Checks -eq 'all' -or $Checks -eq 'operations'){node (Join-Path $PSScriptRoot '../integration/operations.mjs');if($LASTEXITCODE){throw 'Operations test failed'}}
    if($Checks -eq 'all' -or $Checks -eq 'group-mfa'){node (Join-Path $PSScriptRoot '../integration/group-mfa.mjs');if($LASTEXITCODE){throw 'Group MFA test failed'}}
    if($Checks -eq 'all' -or $Checks -eq 'sessions'){node (Join-Path $PSScriptRoot '../integration/sessions.mjs');if($LASTEXITCODE){throw 'Session revocation test failed'}}
+   # Pace the combined fixture through the real 30-attempt login window.
+   # Individual suites do not need this pause; no production bypass is added.
+   if($Checks -eq 'all' -and $env:MYACCOUNTS_PLAYWRIGHT){Start-Sleep -Seconds 60}
+   if($env:MYACCOUNTS_PLAYWRIGHT -and ($Checks -eq 'all' -or $Checks -eq 'passkeys')){node (Join-Path $PSScriptRoot '../integration/passkeys.mjs');if($LASTEXITCODE){throw 'Passkey browser test failed'}}
+   if($env:MYACCOUNTS_PLAYWRIGHT -and ($Checks -eq 'all' -or $Checks -eq 'consent')){node (Join-Path $PSScriptRoot '../integration/consent-browser.mjs');if($LASTEXITCODE){throw 'Consent browser test failed'}}
+   if($Checks -eq 'all' -or $Checks -eq 'scheduled-backup'){node (Join-Path $PSScriptRoot '../integration/scheduled-backup.mjs');if($LASTEXITCODE){throw 'Scheduled backup test failed'}}
    if($env:MYACCOUNTS_FILEBROWSER_EXE){$env:MYACCOUNTS_FILEBROWSER_DATA=Join-Path $Root 'filebrowser-integration';node (Join-Path $PSScriptRoot '../integration/filebrowser.mjs');if($LASTEXITCODE){throw 'FileBrowser integration failed'}}
    if($env:MYACCOUNTS_GITEA_EXE){$env:MYACCOUNTS_GITEA_DATA=Join-Path $Root 'gitea-integration';node (Join-Path $PSScriptRoot '../integration/gitea.mjs');if($LASTEXITCODE){throw 'Gitea integration failed'}}
-  } finally {Remove-Item Env:MYACCOUNTS_TEST_PASSWORD;Remove-Item Env:MYACCOUNTS_TEST_ISSUER}
+  } finally {Remove-Item Env:MYACCOUNTS_TEST_PASSWORD;Remove-Item Env:MYACCOUNTS_TEST_ISSUER;Remove-Item Env:MYACCOUNTS_FIXTURE;Remove-Item Env:MYACCOUNTS_EXE}
  }
  foreach($logFile in Get-ChildItem (Join-Path $Root 'logs') -Filter '*.log'){if((Get-Content -LiteralPath $logFile.FullName -Raw).Contains($password)){throw 'Plaintext password leaked into logs'}}
+ # Integration tests may add signing keys; compare the completed installation.
+ $jwks=Invoke-RestMethod $discovery.jwks_uri
  & $Exe -data $Root stop
  if($LASTEXITCODE){throw 'Clean shutdown failed'}
  $process.WaitForExit(10000)|Out-Null

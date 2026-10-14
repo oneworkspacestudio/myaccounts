@@ -2,7 +2,7 @@ name: Windows build and security gates
 on:
   push:
     branches: [main]
-    tags: ['v*']
+    tags: ['v*', 'preview-*']
   pull_request:
   workflow_dispatch:
 permissions:
@@ -50,13 +50,16 @@ jobs:
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           $env:CGO_ENABLED='0'
           New-Item -ItemType Directory dist -Force | Out-Null
-          go build -trimpath -ldflags '-s -w -X main.version=0.1.0-dev' -o dist/MyAccounts-windows-amd64.exe .
+          $buildVersion='0.1.0-dev'
+          if ($env:GITHUB_REF_TYPE -eq 'tag') { $buildVersion=$env:GITHUB_REF_NAME.TrimStart('v') }
+          go build -trimpath -ldflags "-s -w -X main.version=$buildVersion" -o dist/MyAccounts-windows-amd64.exe .
           exit $LASTEXITCODE
       - name: Native executable smoke
         shell: pwsh
         run: |
           npm ci --prefix integration --ignore-scripts
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $env:MYACCOUNTS_PLAYWRIGHT=(Resolve-Path integration/node_modules/@playwright/test/index.mjs).Path
           ./scripts/smoke.ps1 -Exe ./dist/MyAccounts-windows-amd64.exe -OIDC
       - name: Audit dependencies
         shell: pwsh
@@ -71,6 +74,8 @@ jobs:
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           $hash=(Get-FileHash dist/MyAccounts-windows-amd64.exe -Algorithm SHA256).Hash.ToLower()
           "$hash  MyAccounts-windows-amd64.exe" | Set-Content dist/SHA256SUMS.txt
+          Copy-Item LICENSE,NOTICE,docs/release-acceptance.json dist/
+          Copy-Item docs/preview-release.md dist/KNOWN-LIMITATIONS.md
       - uses: actions/upload-artifact@v4
         with:
           name: MyAccounts-windows-amd64
@@ -82,7 +87,7 @@ jobs:
           $acceptance=Get-Content docs/release-acceptance.json -Raw | ConvertFrom-Json
           if (!$acceptance.approved -or ($acceptance.gates | Where-Object { !$_.passed -or !$_.evidence }).Count) { throw 'Release blocked: incomplete acceptance evidence' }
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/tags/preview-')
     needs: windows
     runs-on: ubuntu-latest
     permissions:
@@ -96,4 +101,5 @@ jobs:
         with:
           files: dist/*
           prerelease: true
+          body_path: dist/KNOWN-LIMITATIONS.md
           generate_release_notes: true
