@@ -741,6 +741,12 @@ func (c *ApiController) SetPassword() {
 	}
 
 	if code != "" {
+		grant, _ := c.GetSession("verifiedGrant").(string)
+		if err = object.ConsumePasswordResetGrant(grant, userId); err != nil {
+			c.ResponseError(err.Error())
+			return
+		}
+		c.DelSession("verifiedGrant")
 		c.SetSession("verifiedCode", "")
 		c.SetSession("verifiedUserId", "")
 	}
@@ -773,7 +779,7 @@ func (c *ApiController) SetPassword() {
 		return
 	}
 
-	_, err = object.ExpireTokenByUser(targetUser.Owner, targetUser.Name)
+	err = object.RevokePasswordSessions(targetUser)
 	if err != nil {
 		c.ResponseError(err.Error())
 		return

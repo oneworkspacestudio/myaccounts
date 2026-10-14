@@ -14,6 +14,9 @@ import (
 // All OTP generation/validation remains in pquerna/otp; SQLite performs atomic compare-and-set.
 func InitFactorStore() error {
 	_, e := ormer.Engine.Exec(`CREATE TABLE IF NOT EXISTS myaccounts_factor_use (user_id TEXT NOT NULL, credential TEXT NOT NULL, last_step INTEGER NOT NULL, PRIMARY KEY(user_id, credential))`)
+	if e == nil {
+		_, e = ormer.Engine.Exec(`CREATE TABLE IF NOT EXISTS myaccounts_reset_grant (grant_id TEXT PRIMARY KEY, user_id TEXT NOT NULL, expires INTEGER NOT NULL, used INTEGER NOT NULL DEFAULT 0)`)
+	}
 	return e
 }
 func factorKey(kind, secret string) string {

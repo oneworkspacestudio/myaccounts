@@ -15,7 +15,7 @@
     {
       "name": "accounts profiles MFA recovery and sessions",
       "passed": false,
-      "evidence": "Password/profile/TOTP/recovery, group mandate, selected/all sessions and virtual-authenticator passkeys passed; real SMTP verification/reset pending"
+      "evidence": "Password/profile/TOTP/recovery, groups/sessions/passkeys and fixture SMTP signup/atomic expiring reset passed; real SMTP delivery/TLS pending"
     },
     {
       "name": "independent OIDC client",

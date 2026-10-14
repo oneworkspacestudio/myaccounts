@@ -60,6 +60,7 @@ try {
    if($env:MYACCOUNTS_PLAYWRIGHT -and ($Checks -eq 'all' -or $Checks -eq 'passkeys')){node (Join-Path $PSScriptRoot '../integration/passkeys.mjs');if($LASTEXITCODE){throw 'Passkey browser test failed'}}
    if($env:MYACCOUNTS_PLAYWRIGHT -and ($Checks -eq 'all' -or $Checks -eq 'consent')){node (Join-Path $PSScriptRoot '../integration/consent-browser.mjs');if($LASTEXITCODE){throw 'Consent browser test failed'}}
    if($Checks -eq 'all' -or $Checks -eq 'scheduled-backup'){node (Join-Path $PSScriptRoot '../integration/scheduled-backup.mjs');if($LASTEXITCODE){throw 'Scheduled backup test failed'}}
+   if($Checks -eq 'all' -or $Checks -eq 'email-recovery'){node (Join-Path $PSScriptRoot '../integration/email-recovery.mjs');if($LASTEXITCODE){throw 'Email recovery fixture test failed'}}
    if($env:MYACCOUNTS_FILEBROWSER_EXE){$env:MYACCOUNTS_FILEBROWSER_DATA=Join-Path $Root 'filebrowser-integration';node (Join-Path $PSScriptRoot '../integration/filebrowser.mjs');if($LASTEXITCODE){throw 'FileBrowser integration failed'}}
    if($env:MYACCOUNTS_GITEA_EXE){$env:MYACCOUNTS_GITEA_DATA=Join-Path $Root 'gitea-integration';node (Join-Path $PSScriptRoot '../integration/gitea.mjs');if($LASTEXITCODE){throw 'Gitea integration failed'}}
   } finally {Remove-Item Env:MYACCOUNTS_TEST_PASSWORD;Remove-Item Env:MYACCOUNTS_TEST_ISSUER;Remove-Item Env:MYACCOUNTS_FIXTURE;Remove-Item Env:MYACCOUNTS_EXE}

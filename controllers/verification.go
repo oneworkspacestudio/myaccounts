@@ -766,14 +766,16 @@ func (c *ApiController) VerifyCode() {
 		return
 	}
 
-	if !isMasterCode {
-		err = object.DisableVerificationCode(checkDest)
-		if err != nil {
-			c.ResponseError(err.Error())
-			return
-		}
+	if isMasterCode {
+		c.ResponseError("Password recovery requires a single-use delivered code")
+		return
 	}
-
+	grant, err := object.IssuePasswordResetGrant(checkDest, authForm.Code, user.GetId())
+	if err != nil {
+		c.ResponseError(err.Error())
+		return
+	}
+	c.SetSession("verifiedGrant", grant)
 	c.SetSession("verifiedCode", authForm.Code)
 	c.SetSession("verifiedUserId", user.GetId())
 	c.ResponseOk()
