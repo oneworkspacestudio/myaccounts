@@ -1,0 +1,56 @@
+{
+  "version": "0.1.0",
+  "approved": false,
+  "gates": [
+    {
+      "name": "native executable smoke",
+      "passed": true,
+      "evidence": "scripts/smoke.ps1 -OIDC on developer Windows host: native startup/account/profile/shutdown and restored identity/signing keys passed"
+    },
+    {
+      "name": "clean Windows without development runtimes",
+      "passed": false,
+      "evidence": "pending independent clean host"
+    },
+    {
+      "name": "accounts profiles MFA recovery and sessions",
+      "passed": false,
+      "evidence": "Password/profile/session and TOTP/recovery replay tests pass; email recovery, passkeys, group policy and full session revocation pending"
+    },
+    {
+      "name": "independent OIDC client",
+      "passed": true,
+      "evidence": "openid-client 6.8.8: code/PKCE, JWKS signature, nonce/state, UserInfo, redirect/verifier/code replay refusal and secret rotation passed"
+    },
+    {
+      "name": "FileBrowser Quantum and Gitea",
+      "passed": true,
+      "evidence": "Disposable native FileBrowser drive-office-v0.3.1 and official Gitea 28.1.0: real redirect/callback, stable-sub account and normal-user authorization passed"
+    },
+    {
+      "name": "authorized Cloudflare and public HTTPS",
+      "passed": false,
+      "evidence": "mocked API tests pass; real test zone not supplied"
+    },
+    {
+      "name": "Windows service reboot and connector recovery",
+      "passed": false,
+      "evidence": "pending isolated Windows host"
+    },
+    {
+      "name": "encrypted backup and no-data-loss upgrade",
+      "passed": false,
+      "evidence": "Native backup/restore preserves DB bytes, identity login and signing keys; upgrade/cross-machine recovery pending"
+    },
+    {
+      "name": "security regression and dependency audit",
+      "passed": false,
+      "evidence": "Focused tests/vet pass; govulncheck zero reachable, seven nonreachable advisories remain; manual licenses and full threat regression pending"
+    },
+    {
+      "name": "GitHub authorization repository CI release",
+      "passed": false,
+      "evidence": "explicit external-account authorization requested and pending"
+    }
+  ]
+}

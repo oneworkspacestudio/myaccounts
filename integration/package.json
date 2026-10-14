@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "openid-client": "6.8.8",
+    "otpauth": "9.5.2"
+  }
+}

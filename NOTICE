@@ -1,0 +1,8 @@
+MyAccounts includes modified Casdoor source.
+Casdoor: Copyright 2021-present The Casdoor Authors.
+Upstream: https://github.com/casdoor/casdoor
+Reviewed source commit: 2e1127cf56b1ecba1863163007af0e04a6f554c8
+Casdoor is licensed under the Apache License, Version 2.0.
+Original copyright and license notices are retained in upstream source files.
+MyAccounts additions are licensed under the same Apache License, Version 2.0.
+Dependency licenses must be included in release SBOM/license reports.
