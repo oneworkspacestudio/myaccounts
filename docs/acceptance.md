@@ -31,6 +31,7 @@ Executed on the developer Windows host with Go 1.27.2; temporary protected data 
 * Real FileBrowser native build drive-office-v0.3.1 (commit 72fc7547d0b099864f2957e26e745cc1ff6facbc, Quantum beta2.1.2 derivative): passed real OIDC login redirect/callback, token verification, authenticated session, stable-sub linkage and normal-user permissions in disposable configuration.
 * Official Gitea 28.1.0 Windows AMD64 (SHA256 68495c963bab1bfcbbe5b48916c7f362a49aca931583575e09763a02ddf63e2d): passed real OIDC redirect/callback, automatic account registration, signed-in settings page, stable subject and administrator-access refusal in disposable configuration. Browser sessions do not authenticate this version's API; the harness checks the web session instead.
 * govulncheck 1.9.0: initial eight reachable advisories remediated through pinned x/net, OpenTelemetry, AWS S3 and Redis upgrades. Repeat scan exit 0: zero reachable vulnerabilities, but four imported-package and three module advisories remain nonreachable in the scan. This is not a blanket vulnerability-free finding.
+* Official connector download through the native `tunnel download` command: passed SHA256 verification; cloudflared 2026.10.0 runs (`86aee4017b26625cee8484c113558f48effa4cd47f7aa05fcf425604e5d2b23c`). No authenticated tunnel operation claimed.
 * CycloneDX gomod 1.9.0: generated `dist/SBOM.cdx.json`, format 1.6, 303 components. License detection warnings for darabonba-number and aliyun-oss require manual review. No complete third-party license clearance claimed.
 
 ## Introduced host-side incident
@@ -51,7 +52,7 @@ The initial isolated Gitea migration wrote an empty `%USERPROFILE%\.ssh\authoriz
 | FileBrowser Quantum / Gitea | Real native FileBrowser and Gitea OIDC flows passed in disposable configuration. Node independent-client harness present; standalone Python example pending. |
 | Opt-in application discovery / automatic config changes | Not implemented. No unknown software configuration is edited. |
 | First-run domain root/subdomain controls, prerequisite display | HTTPS issuer input supports chosen hostname. Dedicated root/subdomain fields and full prerequisite review/status UI remain incomplete. |
-| Cloudflare actual resources, DNS, connector and public login | Code and mocked API tests implemented. No credentials/test zone supplied; no real cloud resources created. Connector live download, status/rotation and public HTTPS checks pending. |
+| Cloudflare actual resources, DNS, connector and public login | Code and mocked API tests implemented. No credentials/test zone supplied; no real cloud resources created. Official connector download/hash/version passed; authenticated operation, status/rotation and public HTTPS checks pending. |
 | Windows service / boot / reboot / shutdown recovery | Service command implementation present. Actual service installation/reboot and connector recovery tests pending. |
 | Secret encryption | Launcher credentials protected by machine DPAPI plus mandatory ACLs. SQLite secrets/signing keys rely on ACLs; full database encryption is not implemented. |
 | Backup, restore and upgrade | Native encrypted backup/restore preserves SQLite bytes, identity login and signing keys. Upgrade and cross-machine restore pending; scheduling and automatic migration rollback not implemented. |

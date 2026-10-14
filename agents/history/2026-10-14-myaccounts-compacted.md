@@ -4,7 +4,7 @@
 
 User requested a new project outside C:, implementation of the attached identity/SSO brief, and the brief in the repository. Authoritative checkout is `H:/Projects/myaccounts`; initial `I:/Projects/myaccounts` is an older copy. E: transfer failed source checksums and was abandoned. H: source transfer matched all 1,308 original files. H: is exFAT; live data must use a filesystem with persistent Windows ACLs. Disposable runtime tests use F: NTFS. No live identity deployment created.
 
-Original brief is preserved verbatim at repository root. Development implementation is substantial but the complete brief is unfinished. `docs/acceptance.md` and `docs/release-acceptance.json` are the authoritative evidence ledger; release remains blocked. GitHub private repository creation/push authorization was requested but not received. No remote, CI run, tag, push or release. Cloudflare credentials/test zone were not supplied; no cloud resources created.
+Original brief is preserved verbatim at repository root. Development implementation is substantial but the complete brief is unfinished. `docs/acceptance.md` and `docs/release-acceptance.json` are the authoritative evidence ledger; release remains blocked. GitHub private repository creation/push authorization was requested but not received. Local implementation milestone committed; no remote, CI run, tag, push or release. Cloudflare credentials/test zone were not supplied; no cloud resources created.
 
 ## Decisions and implementation
 
@@ -22,7 +22,7 @@ Native `scripts/smoke.ps1 -OIDC` verifies bootstrap removal, password/session/pr
 
 Real native FileBrowser drive-office-v0.3.1 (Quantum beta2.1.2 derivative, commit `72fc7547d0b099864f2957e26e745cc1ff6facbc`) and official Gitea 28.1.0 passed disposable OIDC callbacks, stable-sub linkage and normal-user permissions. Gitea API excludes browser session auth; check signed-in settings and forbidden admin page instead. Test code in integration/, executable paths supplied by environment. Existing FileBrowser checkout/configuration was not edited.
 
-govulncheck 1.9.0 originally found eight reachable advisories; dependency patches reduced repeat scan to zero reachable, with four imported-package and three module advisories still nonreachable. This does not clear all vulnerabilities. CycloneDX 1.6 SBOM generated, 303 components; two library license-detection warnings require manual review. Native EXE, SBOM and checksums live in ignored dist/. Setup desktop/mobile PNGs visually reviewed.
+govulncheck 1.9.0 originally found eight reachable advisories; dependency patches reduced repeat scan to zero reachable, with four imported-package and three module advisories still nonreachable. This does not clear all vulnerabilities. CycloneDX 1.6 SBOM generated, 303 components; two library license-detection warnings require manual review. Native EXE, SBOM and checksums live in ignored dist/. Official connector download through native CLI passed digest verification; cloudflared 2026.10.0 runs. Actual tunnel remains untested. Setup desktop/mobile PNGs visually reviewed.
 
 ## Introduced host-side incident
 
