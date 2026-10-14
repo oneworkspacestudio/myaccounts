@@ -36,5 +36,11 @@ try{
  const assertion=await ceremony(await api(begin),false);assert.equal((await api(finish,assertion)).status,'ok','Passkey sign-in failed');
  const account=(await api('/api/get-account')).data;assert.equal(account.name,name);assert.equal(account.isAdmin,false);
  assert.equal((await api(finish,assertion)).status,'error','Authentication challenge replay accepted');
+ await context.clearCookies();await page.goto(origin+'/login/myaccounts');
+ await page.locator('#username').fill(user.email);
+ await page.getByRole('tab',{name:'WebAuthn',exact:true}).click();
+ await page.getByRole('button',{name:'Sign in with WebAuthn',exact:true}).click();
+ await page.waitForURL(u=>!u.pathname.startsWith('/login'));
+ assert.equal((await api('/api/get-account')).data.name,name,'Passkey UI did not establish the normal-user session');
  console.log('PASS: native normal-user WebAuthn registration/sign-in with Chrome CTAP2 authenticator, wrong-origin and challenge replay refusal');
 }finally{await context.close();await browser.close();}

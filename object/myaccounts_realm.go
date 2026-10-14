@@ -72,7 +72,7 @@ func EnsureMyAccountsRealm() error {
 	app.EnableSignUp = false
 	app.DisableSelfSignup = true
 	app.EnableAutoSignin = false
-	app.SigninMethods = []*SigninMethod{{Name: "Password"}, {Name: "WebAuthn"}}
+	app.SigninMethods = []*SigninMethod{{Name: "Password", DisplayName: "Password", Rule: "All"}, {Name: "WebAuthn", DisplayName: "WebAuthn", Rule: "None"}}
 	for _, item := range app.SigninItems {
 		if item.Name == "Username" {
 			item.Label = "Email or username"

@@ -297,7 +297,7 @@ func initBuiltInApplication() {
 		Type:           "All",
 		Scopes:         []*ScopeItem{},
 		Logo:           "/myaccounts.svg",
-		HomepageUrl:    "https://casdoor.org",
+		HomepageUrl:    "/",
 		Organization:   "built-in",
 		Cert:           "cert-built-in",
 		EnablePassword: true,
@@ -307,9 +307,7 @@ func initBuiltInApplication() {
 		},
 		SigninMethods: []*SigninMethod{
 			{Name: "Password", DisplayName: "Password", Rule: "All"},
-			{Name: "Verification code", DisplayName: "Verification code", Rule: "All"},
 			{Name: "WebAuthn", DisplayName: "WebAuthn", Rule: "None"},
-			{Name: "Face ID", DisplayName: "Face ID", Rule: "None"},
 		},
 		SignupItems: []*SignupItem{
 			{Name: "ID", Visible: false, Required: true, Prompted: false, Rule: "Random"},
@@ -331,6 +329,15 @@ func initBuiltInApplication() {
 
 		CookieExpireInHours: 720,
 	}
+	if err = extendApplicationWithSigninItems(application); err != nil {
+		panic(err)
+	}
+	for _, item := range application.SigninItems {
+		if item.Name == "Forgot password?" {
+			item.Visible = false
+		}
+	}
+	application.SigninItems = append([]*SigninItem{{Name: "Text 1", Visible: true, IsCustom: true, CustomCss: `<h1 class="text-2xl font-semibold text-center">Sign in</h1><p class="text-sm text-muted-foreground text-center">Continue to your account and connected apps.</p>`}}, application.SigninItems...)
 	_, err = AddApplication(application, "en")
 	if err != nil {
 		panic(err)
