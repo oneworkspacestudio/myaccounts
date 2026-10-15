@@ -1,1 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="180" height="48" viewBox="0 0 180 48"><style>@media(prefers-color-scheme:dark){#word{fill:#91adff}}</style><rect width="48" height="48" rx="14" fill="#345ad8"/><text x="10" y="35" font-family="system-ui" font-weight="700" font-size="34" fill="white">m</text><text id="word" x="57" y="31" font-family="system-ui" font-size="20" fill="#345ad8">MyAccounts</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none" role="img" aria-labelledby="myaccounts-title">
+<title id="myaccounts-title">MyAccounts</title>
+<defs>
+<linearGradient id="myaccounts-navy" x1="49" y1="35" x2="214" y2="230" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#4B4DD8"/><stop offset="0.48" stop-color="#302B99"/><stop offset="1" stop-color="#1C165E"/></linearGradient>
+<linearGradient id="myaccounts-head" x1="103" y1="72" x2="155" y2="128" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#FFFFFF"/><stop offset="0.47" stop-color="#E8EDF5"/><stop offset="1" stop-color="#AAB5C9"/></linearGradient>
+<linearGradient id="myaccounts-person" x1="90" y1="147" x2="165" y2="207" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#8AEFD9"/><stop offset="0.42" stop-color="#49D4BA"/><stop offset="1" stop-color="#00A58F"/></linearGradient>
+</defs>
+<path d="M138 19 218 53C227 57 231 64 231 76V137C231 181 196 211 142 237C133 241 123 241 114 237C60 211 25 181 25 137V76C25 64 29 57 38 53L118 19C124 16 132 16 138 19Z" fill="url(#myaccounts-navy)"/>
+<circle cx="128" cy="99" r="33" fill="url(#myaccounts-head)"/>
+<path d="M73 188C77 157 97 140 128 140C159 140 179 157 183 188C187 201 173 207 128 207C83 207 69 201 73 188Z" fill="url(#myaccounts-person)"/>
+</svg>

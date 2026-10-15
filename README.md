@@ -1,18 +1,17 @@
-# MyAccounts
+# <img src="web/public/myaccounts.svg" alt="" width="42" height="42"> MyAccounts
 
 A portable, self-hosted account server for Windows. Give your apps a shared sign-in,
 manage users in one admin panel, and keep your identities on your own machine.
 Powered by Casdoor, with an embedded web UI and SQLite database.
 
-[Download Windows preview](https://github.com/fahimc/myaccounts/releases/tag/preview-20261014.2) ·
-[Custom FileBrowser](https://github.com/fahimc/filebrowser/tree/drive-reskin) ·
+[Download Windows preview](https://github.com/oneworkspacestudio/myaccounts/releases) ·
+[Custom FileBrowser](https://github.com/oneworkspacestudio/drive) ·
 [Integration guide](docs/integrations.md) · [Setup and recovery](docs/deployment.md)
 
 ![MyAccounts sign-in screen](docs/screenshots/sign-in.png)
 
 **Evaluation preview:** some production acceptance checks remain open. See
-[verified checks and limitations](docs/acceptance.md). This repository is private;
-GitHub sign-in and repository access are required to download its releases.
+[verified checks and limitations](docs/acceptance.md). Public Windows preview downloads are available from the organization repository.
 
 ## What it does
 
@@ -31,7 +30,7 @@ GitHub sign-in and repository access are required to download its releases.
 
 ## Download and run
 
-Download from [preview-20261014.2](https://github.com/fahimc/myaccounts/releases/tag/preview-20261014.2).
+Download from [preview-20261014.2](https://github.com/oneworkspacestudio/myaccounts/releases).
 The release contains:
 
 | File | Who needs it |
@@ -125,9 +124,9 @@ until an administrator deliberately enables it.
 
 ## Connect our custom FileBrowser
 
-Our companion project is [fahimc/filebrowser](https://github.com/fahimc/filebrowser).
-Use its [Drive/Office branch](https://github.com/fahimc/filebrowser/tree/drive-reskin)
-and [Windows Drive/Office release](https://github.com/fahimc/filebrowser/releases/tag/drive-office-v0.4.0).
+Our companion project is [fahimc/filebrowser](https://github.com/oneworkspacestudio/drive).
+Use its [Drive/Office branch](https://github.com/oneworkspacestudio/drive)
+and [Windows Drive/Office release](https://github.com/oneworkspacestudio/drive/releases).
 It combines the Drive-style file interface with browser document editing and
 version history. MyAccounts adds shared sign-in; FileBrowser continues to store
 and authorize access to your files.
