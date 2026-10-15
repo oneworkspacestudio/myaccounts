@@ -1,4 +1,8 @@
-# <img src="web/public/myaccounts.svg" alt="" width="42" height="42"> MyAccounts
+<p align="center">
+  <img src="web/public/myaccounts.svg" alt="MyAccounts logo" width="112" height="112">
+</p>
+
+<h1 align="center">MyAccounts</h1>
 
 A portable, self-hosted account server for Windows. Give your apps a shared sign-in,
 manage users in one admin panel, and keep your identities on your own machine.
