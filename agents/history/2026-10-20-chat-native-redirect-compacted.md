@@ -127,3 +127,21 @@ identities/history and document bytes. Actual downloaded44 installer/bundle hash
 verified. Owner remains42 pending corrected Chat manual Retry7/Workspace45 gates.
 No further provider binary change is required for that client fix. Full Chat
 E2EE/native/social/calls/recovery remains unfinished; no production claim.
+
+## Final public Workspace45 integration
+
+Workspace45/edf3a8a with Chat8/9df73077 and the same provider20 bytes is now
+public. Actual anonymous files passed default-online fresh setup, browser flows,
+supported rollback and paired42→45 reapply. Client credentials, existing browser
+SSO, issuer/subject identity links, history and document bytes remained. The owner
+installation was then operationally updated with those published files; provider
+EXEc3a309d3, Chatb06d2102 and manager58840dde match pins. Public Workspace/Accounts/
+dedicated Chat health return200;18 app processes plus Cloudflare run alongside
+2built-in routes. Owner conversations/browser sign-in were not used as fixtures.
+
+No new provider binary/tag was necessary. Chat8 and Workspace45 remain incomplete
+parity candidates, not application E2EE/native acceptance. C test/private/browser/
+frontend/Rust caches were stopped/ref-checked and removed after proof. The small
+synthetic provider .age backup was encryption-header/hash checked and preserved on
+I before C removal. Owner's newest verified recovery copy retained. Full sanitized
+scope/mappings are in companion public integration JSON and Chat/Workspace histories.
