@@ -34,7 +34,8 @@ Powered by Casdoor, with an embedded web UI and SQLite database.
 
 ## Download and run
 
-Download from [preview-20261014.2](https://github.com/oneworkspacestudio/myaccounts/releases).
+Download the latest candidate from [organization releases](https://github.com/oneworkspacestudio/myaccounts/releases).
+The callback-binding update is described in [preview-20261020.1](docs/preview-20261020.1.md).
 The release contains:
 
 | File | Who needs it |
@@ -234,10 +235,11 @@ Build the frontend before compiling the embedded executable:
 .\scripts\build.ps1 -Version dev
 ```
 
-The release workflow type-checks/builds the UI, tests native components, exercises
-OIDC/MFA/passkeys/consent/recovery/backups, tests administration with email disabled,
-scans dependencies, generates an SBOM and verifies uploaded executable checksums
-before publishing. Tagged Actions results are the authoritative release evidence.
+Current releases are built locally on Windows; GitHub Actions are disabled.
+The build script builds the pinned UI, tests native components and callback
+binding, runs static analysis and embeds the browser assets. Each new candidate
+records the checks actually performed and its source/hash receipt. Historical
+acceptance is not automatically a fresh test of every feature in a new build.
 Known incomplete checks remain recorded in the [acceptance ledger](docs/acceptance.md).
 
 Screenshots can be regenerated against a disposable NTFS fixture with

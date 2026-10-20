@@ -223,6 +223,7 @@ func (c *ApiController) GetOAuthToken() {
 	grantType := c.Ctx.Input.Query("grant_type")
 	code := c.Ctx.Input.Query("code")
 	verifier := c.Ctx.Input.Query("code_verifier")
+	redirectURI := c.Ctx.Input.Query("redirect_uri")
 	scope := c.Ctx.Input.Query("scope")
 	nonce := c.Ctx.Input.Query("nonce")
 	username := c.Ctx.Input.Query("username")
@@ -266,6 +267,9 @@ func (c *ApiController) GetOAuthToken() {
 			}
 			if verifier == "" {
 				verifier = tokenRequest.Verifier
+			}
+			if redirectURI == "" {
+				redirectURI = tokenRequest.RedirectURI
 			}
 			if scope == "" {
 				scope = tokenRequest.Scope
@@ -394,7 +398,7 @@ func (c *ApiController) GetOAuthToken() {
 		return
 	}
 
-	token, err := object.GetOAuthToken(grantType, clientId, clientSecret, code, verifier, scope, nonce, username, password, countryCode, host, refreshToken, tag, avatar, c.GetAcceptLanguage(), subjectToken, subjectTokenType, assertion, clientAssertion, clientAssertionType, audience, resource, dpopProof, util.GetClientIpFromRequest(c.Ctx.Request))
+	token, err := object.GetOAuthToken(grantType, clientId, clientSecret, code, verifier, scope, nonce, username, password, countryCode, host, refreshToken, tag, avatar, c.GetAcceptLanguage(), subjectToken, subjectTokenType, assertion, clientAssertion, clientAssertionType, audience, resource, dpopProof, util.GetClientIpFromRequest(c.Ctx.Request), redirectURI)
 	if err != nil {
 		c.ResponseError(err.Error())
 		return

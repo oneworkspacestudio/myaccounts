@@ -96,7 +96,8 @@ func handleSiteCallback(w http.ResponseWriter, r *http.Request, site *object.Sit
 		return
 	}
 
-	token, tokenError, err := object.GetAuthorizationCodeToken(application, application.ClientSecret, code, "", "", conf.GetAcceptLanguage(r.Header.Get("Accept-Language")))
+	callbackURI := fmt.Sprintf("%s://%s/caswaf-handler", scheme, r.Host)
+	token, tokenError, err := object.GetAuthorizationCodeToken(application, application.ClientSecret, code, "", "", conf.GetAcceptLanguage(r.Header.Get("Accept-Language")), callbackURI)
 	if tokenError != nil {
 		responseError(w, "Casdoor site error: casdoorClient.GetOAuthToken() error: %s", tokenError.Error)
 		return

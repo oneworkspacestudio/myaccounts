@@ -46,11 +46,14 @@ type Token struct {
 	TokenType        string `xorm:"varchar(100)" json:"tokenType"`
 	GrantType        string `xorm:"varchar(100)" json:"grantType"`
 	CodeChallenge    string `xorm:"varchar(100)" json:"codeChallenge"`
-	CodeIsUsed       bool   `json:"codeIsUsed"`
-	CodeExpireIn     int64  `json:"codeExpireIn"`
-	Resource         string `xorm:"varchar(255)" json:"resource"`           // RFC 8707 Resource Indicator
-	DPoPJkt          string `xorm:"varchar(255) 'dpop_jkt'" json:"dPoPJkt"` // RFC 9449 DPoP JWK thumbprint binding
-	SessionId        string `xorm:"varchar(100) index" json:"sessionId"`    // the Beego session id that minted the token
+	// Bind the actual authorization request, not just any currently registered
+	// callback. Omit it from administrative token JSON to prevent client edits.
+	CodeRedirectURI string `xorm:"text 'code_redirect_uri'" json:"-"`
+	CodeIsUsed      bool   `json:"codeIsUsed"`
+	CodeExpireIn    int64  `json:"codeExpireIn"`
+	Resource        string `xorm:"varchar(255)" json:"resource"`           // RFC 8707 Resource Indicator
+	DPoPJkt         string `xorm:"varchar(255) 'dpop_jkt'" json:"dPoPJkt"` // RFC 9449 DPoP JWK thumbprint binding
+	SessionId       string `xorm:"varchar(100) index" json:"sessionId"`    // the Beego session id that minted the token
 }
 
 func GetTokenCount(owner, organization, field, value string) (int64, error) {

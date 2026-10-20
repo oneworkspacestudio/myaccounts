@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "existingAccessTokenAndSSOPreserved": true,
+  "checks": [
+    "Actual MyAccounts S256 authorization-code exchange works without a client secret or browser cookies; ID-token signature/issuer/audience/nonce verified",
+    "Consumed authorization code cannot be reused",
+    "Wrong PKCE verifier is rejected without consuming the legitimate code",
+    "Mismatched token redirect URI is rejected without consuming the legitimate code",
+    "A different registered callback is also rejected; binding is to the original request",
+    "Form token input requires the original callback and accepts it when supplied",
+    "JSON token input requires the original callback and accepts it when supplied",
+    "Concurrent authorization-code exchanges produce exactly one successful token response"
+  ],
+  "legacyDatabaseMigrationPassed": true,
+  "finalReleasedBinaryTested": false,
+  "ownerDataUsed": false,
+  "date": "2026-10-20",
+  "chatIdentityHistoryAndDocumentBytesPreserved": true,
+  "developmentExecutableSHA256": "de9824b21011e1f28782bf3499d1bc629caa7a18b7468344e49e1931a99c2cc4",
+  "nativeMobileAcceptance": false
+}

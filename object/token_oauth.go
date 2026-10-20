@@ -24,7 +24,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func GetOAuthToken(grantType string, clientId string, clientSecret string, code string, verifier string, scope string, nonce string, username string, password string, countryCode string, host string, refreshToken string, tag string, avatar string, lang string, subjectToken string, subjectTokenType string, assertion string, clientAssertion string, clientAssertionType string, audience string, resource string, dpopProof string, clientIp string) (interface{}, error) {
+func GetOAuthToken(grantType string, clientId string, clientSecret string, code string, verifier string, scope string, nonce string, username string, password string, countryCode string, host string, refreshToken string, tag string, avatar string, lang string, subjectToken string, subjectTokenType string, assertion string, clientAssertion string, clientAssertionType string, audience string, resource string, dpopProof string, clientIp string, redirectURI string) (interface{}, error) {
 	var (
 		application *Application
 		err         error
@@ -84,7 +84,7 @@ func GetOAuthToken(grantType string, clientId string, clientSecret string, code 
 	var tokenError *TokenError
 	switch grantType {
 	case "authorization_code": // Authorization Code Grant
-		token, tokenError, err = GetAuthorizationCodeToken(application, clientSecret, code, verifier, resource, lang)
+		token, tokenError, err = GetAuthorizationCodeToken(application, clientSecret, code, verifier, resource, lang, redirectURI)
 	case "password": // Resource Owner Password Credentials Grant
 		token, tokenError, err = GetPasswordToken(application, username, password, scope, host, clientIp, lang)
 	case "client_credentials": // Client Credentials Grant
@@ -154,7 +154,7 @@ func GetOAuthToken(grantType string, clientId string, clientSecret string, code 
 }
 
 // GetAuthorizationCodeToken handles the Authorization Code Grant flow.
-func GetAuthorizationCodeToken(application *Application, clientSecret string, code string, verifier string, resource string, lang string) (*Token, *TokenError, error) {
+func GetAuthorizationCodeToken(application *Application, clientSecret string, code string, verifier string, resource string, lang string, redirectURI string) (*Token, *TokenError, error) {
 	if code == "" {
 		return nil, &TokenError{
 			Error:            InvalidRequest,
@@ -193,7 +193,7 @@ func GetAuthorizationCodeToken(application *Application, clientSecret string, co
 	if token == nil {
 		return nil, &TokenError{
 			Error:            InvalidGrant,
-			ErrorDescription: fmt.Sprintf("authorization code: [%s] is invalid", code),
+			ErrorDescription: "authorization code is invalid",
 		}, nil
 	}
 
@@ -204,13 +204,19 @@ func GetAuthorizationCodeToken(application *Application, clientSecret string, co
 			ErrorDescription: fmt.Sprintf("authorization code has been used for token: [%s]", token.GetId()),
 		}, nil
 	}
+	// RFC6749 sections4.1.3/10.6: compare the exact URI used to mint this
+	// particular code. Legacy unbound codes must restart authorization; access
+	// tokens, refresh tokens and existing identity/session records are retained.
+	if !validAuthorizationCodeRedirect(token.CodeRedirectURI, redirectURI) {
+		return nil, &TokenError{Error: InvalidGrant, ErrorDescription: "redirect_uri does not match the authorization request; restart sign-in"}, nil
+	}
 
 	if token.CodeChallenge != "" {
 		challengeAnswer := pkceChallenge(verifier)
 		if challengeAnswer != token.CodeChallenge {
 			return nil, &TokenError{
 				Error:            InvalidGrant,
-				ErrorDescription: fmt.Sprintf("verifier is invalid, challengeAnswer: [%s], token.CodeChallenge: [%s]", challengeAnswer, token.CodeChallenge),
+				ErrorDescription: "code_verifier is invalid",
 			}, nil
 		}
 	}
@@ -227,7 +233,7 @@ func GetAuthorizationCodeToken(application *Application, clientSecret string, co
 			if clientSecret != "" {
 				return nil, &TokenError{
 					Error:            InvalidClient,
-					ErrorDescription: fmt.Sprintf("client_secret is invalid for application: [%s], token.CodeChallenge: [%s]", application.GetId(), token.CodeChallenge),
+					ErrorDescription: "client_secret is invalid",
 				}, nil
 			}
 		}
