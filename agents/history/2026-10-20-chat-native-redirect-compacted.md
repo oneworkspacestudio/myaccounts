@@ -103,3 +103,27 @@ Do not rerun upgrade mode on the already-upgraded fixture or overwrite baseline.
 Normal negative-only mode passed again. Final clean source build, actual released
 downloads/fresh+upgrade, publication and Workspace pin remain required. No provider
 commit/tag/release yet. Chat5/Workspace43 are public incomplete foundation releases.
+
+## Final publication and integration checkpoint
+
+Source87a1c98d83f2ec1751e5d8eac114b94ba30c4660 is pushed to main and tagged
+preview-20261020.1. Public release417922134 has14 assets, all server SHA/size and
+tag-source mappings verified. Main EXE SHA
+c3a309d396774427aeb9fdf0db355b70fb37a107abdd7b7156fe817744ec1d34;
+mail helper07cd3994a996fd57565d8b7bfaddc3530b7416acedc4c3a49b9bbee76b981b70.
+Built locally with Actions disabled, from a clean temporary detached NTFS checkout
+of the exact commit because processing source on I was slow. Canonical sources,
+hash-pinned downloads and release artifacts remain on I. The verified temporary
+C checkout/toolchain/module/frontend/npm-exec/test roots were removed after proof;
+no owner state or unknown global caches were touched.
+
+Final real fresh provider/bootstrap/independent OIDC/native public-client S256,
+negative callbacks/form+JSON/replay/concurrent claim, encrypted SQLite restore,
+signing-key preservation and existing Chat ID/history/document-byte checks passed.
+Earlier development migration evidence is labelled separately from final bytes.
+Workspace44 includes the actual public20 executable and both owned notices;
+exact local fresh/paired42 upgrade preserves browser SSO, client IDs/secrets,
+identities/history and document bytes. Actual downloaded44 installer/bundle hashes
+verified. Owner remains42 pending corrected Chat manual Retry7/Workspace45 gates.
+No further provider binary change is required for that client fix. Full Chat
+E2EE/native/social/calls/recovery remains unfinished; no production claim.
