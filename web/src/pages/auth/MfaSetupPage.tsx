@@ -1,3 +1,4 @@
+import {OneAccountSecurity} from "@/components/auth/mfa/OneAccountSecurity";
 import * as React from "react";
 import i18next from "i18next";
 import {Check, KeyRound, User} from "lucide-react";
@@ -43,7 +44,7 @@ function getRequiredMfaType(account: any) {
  * the factor, then enable it and hand over the recovery code. Ported from
  * web/src/auth/MfaSetupPage.js.
  */
-export default function MfaSetupPage() {
+export function LegacyMfaSetupPage() {
   const {account, reload} = useAccount();
   const navigate = useNavigate();
   const location = useLocation();
@@ -245,3 +246,5 @@ export default function MfaSetupPage() {
     </div>
   );
 }
+
+export default function MfaSetupPage(){const [params]=useSearchParams();return params.get('mfaType')==='app'||!params.get('mfaType')?React.createElement(OneAccountSecurity):React.createElement(LegacyMfaSetupPage);}

@@ -152,7 +152,17 @@ func (c *ApiController) HandleLoggedIn(application *object.Application, user *ob
 	}
 
 	userId := user.GetId()
+	if user.TotpSecret != "" && !object.MfaSessionAuthorized(user, c.Ctx.Input.CruSession.SessionID(context.Background())) && c.Ctx.Input.GetData("oneAccountMfaVerified") != userId {
+		c.setMfaUserSession(userId)
+		c.SetSession("oneAccountMfaApplication", application.GetId())
+		return &Response{Status: "ok", Data: object.NextMfa, Data2: []*object.MfaProps{user.GetMfaProps(object.TotpType, true)}}
+	}
 	c.renewSessionIdForUser(userId)
+	if c.Ctx.Input.GetData("oneAccountMfaVerified") == userId {
+		if err := object.GrantMfaSession(user, c.Ctx.Input.CruSession.SessionID(context.Background())); err != nil {
+			return &Response{Status: "error", Msg: "MFA session unavailable"}
+		}
+	}
 	clientIp := util.GetClientIpFromRequest(c.Ctx.Request)
 	authTime := c.getAuthTime()
 	responseType, isResponseType := object.ParseResponseType(form.Type)
@@ -618,20 +628,30 @@ func checkMfaEnable(c *ApiController, user *object.User, organization *object.Or
 		c.ResponseError("Cannot evaluate group security policy")
 		return true
 	}
-	if user.IsMfaEnabled() && (groupRequired || !object.IsMfaRemembered(user, c.Ctx.GetCookie(object.MfaRememberCookieName))) {
+	if user.IsMfaEnabled() && (user.TotpSecret != "" || groupRequired || !object.IsMfaRemembered(user, c.Ctx.GetCookie(object.MfaRememberCookieName))) {
 		c.setMfaUserSession(user.GetId())
+		var boundForm form.AuthForm
+		if json.Unmarshal(c.Ctx.Input.RequestBody, &boundForm) == nil {
+			if boundForm.ClientId != "" {
+				if app, e := object.GetApplicationByClientId(boundForm.ClientId); e == nil && app != nil {
+					c.SetSession("oneAccountMfaApplication", app.GetId())
+				}
+			} else {
+				c.SetSession("oneAccountMfaApplication", "admin/"+boundForm.Application)
+			}
+		}
 		mfaList := object.GetAllMfaProps(user, true)
 		mfaAllowList := []*object.MfaProps{}
 		mfaRememberInHours := organization.MfaRememberInHours
 		for _, prop := range mfaList {
-			if groupRequired && prop.MfaType != object.TotpType {
+			if (groupRequired || user.TotpSecret != "") && prop.MfaType != object.TotpType {
 				continue
 			}
 			if prop.MfaType == verificationType || !prop.Enabled {
 				continue
 			}
 			prop.MfaRememberInHours = mfaRememberInHours
-			if groupRequired {
+			if groupRequired || prop.MfaType == object.TotpType {
 				prop.MfaRememberInHours = 0
 			}
 			mfaAllowList = append(mfaAllowList, prop)
@@ -1465,6 +1485,16 @@ func (c *ApiController) Login() {
 			c.ResponseError("Authenticator factor required by group policy")
 			return
 		}
+		challengeID, _ := c.GetSession("oneAccountMfaChallenge").(string)
+		boundApplication, _ := c.GetSession("oneAccountMfaApplication").(string)
+		if !object.MfaChallengeValid(user, challengeID) || boundApplication != application.GetId() {
+			c.ResponseError("Verification expired; sign in again")
+			return
+		}
+		if user.TotpSecret != "" && authForm.RecoveryCode == "" && authForm.MfaType != object.TotpType {
+			c.ResponseError("Use One Authenticator or a recovery code")
+			return
+		}
 		if authForm.Passcode != "" {
 			if authForm.MfaType == c.GetSession("verificationCodeType") {
 				c.ResponseError("Invalid multi-factor authentication type")
@@ -1488,7 +1518,7 @@ func (c *ApiController) Login() {
 				return
 			}
 
-			if authForm.EnableMfaRemember {
+			if authForm.EnableMfaRemember && user.TotpSecret == "" {
 				mfaRememberInSeconds := organization.MfaRememberInHours * 3600
 				currentTime := util.String2Time(util.GetCurrentTime())
 				duration := time.Duration(mfaRememberInSeconds) * time.Second
@@ -1516,6 +1546,13 @@ func (c *ApiController) Login() {
 			return
 		}
 
+		challenge, _ := c.GetSession("oneAccountMfaChallenge").(string)
+		if err = object.ClaimMfaChallenge(user, challenge); err != nil {
+			c.ResponseError("Verification expired; sign in again")
+			return
+		}
+		c.Ctx.Input.SetData("oneAccountMfaVerified", user.GetId())
+		_ = object.MfaAudit(user, "challenge_completed")
 		if c.promptMfaSetupAfterMfa(user) {
 			return
 		}
@@ -1574,7 +1611,7 @@ func (c *ApiController) Login() {
 
 			c.Ctx.Input.SetParam("recordUserId", user.GetId())
 		} else {
-			c.ResponseError(fmt.Sprintf(c.T("auth:Unknown authentication type (not password or provider), form = %s"), util.StructToJson(authForm)))
+			c.ResponseError("Unknown authentication request; start sign-in again")
 			return
 		}
 	}

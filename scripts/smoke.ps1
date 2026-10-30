@@ -78,6 +78,7 @@ try {
   $env:MYACCOUNTS_FIXTURE=$Root
   $env:MYACCOUNTS_EXE=$Exe
   try {
+   if($Checks -eq 'oneaccount-ui'){node (Join-Path $PSScriptRoot '../integration/oneaccount-ui.mjs');if($LASTEXITCODE){throw 'OneAccount / offline authenticator browser test failed'}}
    if($Checks -eq 'all' -or $Checks -eq 'oidc'){node (Join-Path $PSScriptRoot '../integration/oidc.mjs');if($LASTEXITCODE){throw 'Independent OIDC test failed'}}
    if($Checks -eq 'all' -or $Checks -eq 'mfa'){node (Join-Path $PSScriptRoot '../integration/mfa.mjs');if($LASTEXITCODE){throw 'Independent MFA test failed'}}
    if($Checks -eq 'docs'){node (Join-Path $PSScriptRoot '../integration/docs-screenshots.mjs');if($LASTEXITCODE){throw 'Documentation capture failed'}}

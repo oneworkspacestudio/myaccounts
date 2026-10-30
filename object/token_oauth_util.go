@@ -480,7 +480,7 @@ func GetOAuthCode(userId string, clientId string, provider string, signinMethod 
 	// the code is generated first: an ID token returned together with it carries its c_hash
 	rt, _ := ParseResponseType(responseType)
 	code := util.GenerateAuthorizationCode()
-	options := jwtTokenOptions{AuthTime: authTime, WithAtHash: rt.IsCodeOnly() || rt.Token}
+	options := jwtTokenOptions{MfaSession: sessionId, AuthTime: authTime, WithAtHash: rt.IsCodeOnly() || rt.Token}
 	if rt.IdToken {
 		options.Code = code
 	}
@@ -669,7 +669,7 @@ func RefreshToken(application *Application, grantType string, refreshToken strin
 		return nil, err
 	}
 
-	newAccessToken, newRefreshToken, newIdToken, tokenName, err := generateJwtToken(application, user, "", "", "", scope, resource, host)
+	newAccessToken, newRefreshToken, newIdToken, tokenName, err := generateJwtTokenWithOptions(application, user, "", "", "", scope, resource, host, jwtTokenOptions{MfaSession: token.SessionId})
 	if err != nil {
 		return &TokenError{
 			Error:            EndpointError,

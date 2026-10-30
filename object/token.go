@@ -136,7 +136,7 @@ func (token *Token) IsUserActive() (bool, error) {
 		return false, nil
 	}
 
-	return !user.IsForbidden && !user.IsDeleted, nil
+	return !user.IsForbidden && !user.IsDeleted && MfaSessionAuthorized(user, token.SessionId), nil
 }
 
 func GetTokenByRefreshToken(refreshToken string) (*Token, error) {

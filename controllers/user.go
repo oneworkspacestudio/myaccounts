@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/beego/beego/v2/core/utils/pagination"
 	"github.com/casdoor/casdoor/conf"
@@ -858,10 +859,21 @@ func (c *ApiController) CheckUserPassword() {
 	 * Verified password with user as subject, if field ldap not empty,
 	 * then `isPasswordWithLdapEnabled` is true
 	 */
-	_, err = object.CheckUserPassword(user.Owner, user.Name, user.Password, c.GetAcceptLanguage(), false, false, user.Ldap != "")
+	current := c.getCurrentUser()
+	if current == nil || current.GetId() != user.GetId() {
+		c.ResponseError("Sign in as this account first")
+		return
+	}
+	if err = object.MfaPasswordAttempt(current); err != nil {
+		c.ResponseError(err.Error())
+		return
+	}
+	_, err = object.CheckUserPassword(current.Owner, current.Name, user.Password, c.GetAcceptLanguage(), false, false, current.Ldap != "")
 	if err != nil {
 		c.ResponseError(err.Error())
 	} else {
+		c.SetSession("oneAccountPasswordProof", current.Id)
+		c.SetSession("oneAccountPasswordTime", time.Now().Unix())
 		c.ResponseOk()
 	}
 }

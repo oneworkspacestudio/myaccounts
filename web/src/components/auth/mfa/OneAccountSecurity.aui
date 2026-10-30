@@ -1,0 +1,44 @@
+Page OneAccountSecurityScreen
+  Stack
+    Heading level=1 "Security"
+    Text "Two-factor authentication with One Authenticator"
+    If condition=$message
+      Alert role=status $message
+    If condition=$error
+      Alert role=alert $error
+    If condition=$recovery
+      Card
+        Heading level=2 "Save your ten recovery codes"
+        Text "These codes are shown once. Each works only once. Save them separately from your phone, never in My Drive."
+        Section variant=recovery value=$recovery
+        Button action=download "Download recovery codes"
+        Button action=print "Print recovery codes"
+        Button action=acknowledge "I have saved my recovery codes"
+    If condition=$showStatus
+      Card
+        Heading level=2 $statusTitle
+        Text $metadata
+        Text "Generate your code locally in One Authenticator. The phone app needs no OneAccount session or internet after setup."
+        If condition=$enabled
+          Text "Replace a lost device by signing in with a recovery code, disabling the old authenticator, then enrolling the replacement. Old seeds are never cloned. A recent MFA sign-in can authorize security changes for five minutes after you verify your password. Disabling signs out all sessions."
+        Input name=password label="Current OneAccount password" type=password autocomplete=current-password
+        If condition=$enabled
+          Input name=proof label="Current code or recovery code (optional immediately after MFA sign-in)" autocomplete=off
+          Button action=regenerate "Regenerate recovery codes"
+          Input name=disableConfirmation label="Type DISABLE to remove the authenticator" autocomplete=off
+          Button variant=danger action=disable "Disable two-factor authentication"
+        If condition=$disabled
+          Input name=deviceLabel label="Device label" autocomplete=off
+          Button action=begin "Enable two-factor authentication"
+        Text "TOTP is vulnerable to phishing. Verify your OneAccount address before entering a code."
+        Heading level=2 "Recent security notifications"
+        Text $notifications
+    If condition=$pending
+      Card
+        Heading level=2 "Scan with One Authenticator"
+        Text "Open One Authenticator on your phone → Add OneAccount → Scan QR code. Keep this QR private. Setup expires in five minutes."
+        Section variant=qr value=$qr
+        Section variant=key value=$secret
+        Input name=code label="Six-digit code from One Authenticator" autocomplete=one-time-code
+        Button action=confirm "Verify and enable"
+        Button variant=secondary action=cancel "Cancel setup"

@@ -73,6 +73,8 @@ func TestEncryptedBackupRestore(t *testing.T) {
 		os.WriteFile(filepath.Join(d, "secrets", "tunnel.dpapi"), protected, 0600)
 		emailSecret, _ := Protect([]byte("synthetic-email-credential"))
 		os.WriteFile(filepath.Join(d, "secrets", "email-relay.dpapi"), emailSecret, 0600)
+		mfaKey, _ := Protect(bytes.Repeat([]byte{0x42}, 32))
+		os.WriteFile(filepath.Join(d, "secrets", "oneaccount-mfa.dpapi"), mfaKey, 0600)
 	}
 	backup := filepath.Join(root, "backup.age")
 	password := "long portable test passphrase"
@@ -96,6 +98,15 @@ func TestEncryptedBackupRestore(t *testing.T) {
 		}
 		if _, e = os.Stat(filepath.Join(dest, "secrets", "email-relay.portable")); !os.IsNotExist(e) {
 			t.Fatal("portable plaintext email credential left after restore")
+		}
+	}
+	if b, e := os.ReadFile(filepath.Join(dest, "secrets", "oneaccount-mfa.dpapi")); e == nil {
+		plain, e := Unprotect(b)
+		if e != nil || !bytes.Equal(plain, bytes.Repeat([]byte{0x42}, 32)) {
+			t.Fatal("MFA envelope key did not survive encrypted portable restore")
+		}
+		if _, e = os.Stat(filepath.Join(dest, "secrets", "oneaccount-mfa.portable")); !os.IsNotExist(e) {
+			t.Fatal("portable plaintext MFA key left after restore")
 		}
 	}
 	b, e := os.ReadFile(filepath.Join(dest, "users.db"))

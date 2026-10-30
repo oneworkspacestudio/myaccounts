@@ -17,7 +17,10 @@ func InitFactorStore() error {
 	if e == nil {
 		_, e = ormer.Engine.Exec(`CREATE TABLE IF NOT EXISTS myaccounts_reset_grant (grant_id TEXT PRIMARY KEY, user_id TEXT NOT NULL, expires INTEGER NOT NULL, used INTEGER NOT NULL DEFAULT 0)`)
 	}
-	return e
+	if e != nil {
+		return e
+	}
+	return initOneAccountMfa()
 }
 func factorKey(kind, secret string) string {
 	sum := sha256.Sum256([]byte(kind + ":" + secret))
@@ -33,7 +36,7 @@ func VerifyTotpOnce(user *User, passcode, lang string) error {
 	matched := int64(-1)
 	for offset := int64(-1); offset <= 1; offset++ {
 		step := current + offset
-		code, e := totp.GenerateCodeCustom(user.TotpSecret, time.Unix(step*MfaTotpPeriodInSeconds, 0), totp.ValidateOpts{Period: MfaTotpPeriodInSeconds, Digits: otp.DigitsSix, Algorithm: otp.AlgorithmSHA1})
+		code, e := totp.GenerateCodeCustom(props.Secret, time.Unix(step*MfaTotpPeriodInSeconds, 0), totp.ValidateOpts{Period: MfaTotpPeriodInSeconds, Digits: otp.DigitsSix, Algorithm: otp.AlgorithmSHA1})
 		if e != nil {
 			return e
 		}
@@ -44,7 +47,7 @@ func VerifyTotpOnce(user *User, passcode, lang string) error {
 	if matched < 0 || user.Id == "" {
 		return errors.New("invalid authenticator identity or code")
 	}
-	key := factorKey("totp", user.TotpSecret)
+	key := factorKey("totp", props.Secret)
 	if _, e := ormer.Engine.Exec("INSERT OR IGNORE INTO myaccounts_factor_use(user_id,credential,last_step) VALUES(?,?,0)", user.Id, key); e != nil {
 		return e
 	}
@@ -65,7 +68,7 @@ func consumeRecoveryCode(user *User, code string) error {
 	if user.Id == "" {
 		return errors.New("invalid recovery identity")
 	}
-	result, e := ormer.Engine.Exec("INSERT OR IGNORE INTO myaccounts_factor_use(user_id,credential,last_step) VALUES(?,?,1)", user.Id, factorKey("recovery", code))
+	result, e := ormer.Engine.Exec("INSERT OR IGNORE INTO myaccounts_factor_use(user_id,credential,last_step) VALUES(?,?,1)", user.Id, factorKey("recovery", RecoveryDigest(user, code)))
 	if e != nil {
 		return e
 	}

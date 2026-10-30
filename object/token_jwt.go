@@ -579,6 +579,7 @@ func refineUser(user *User) *User {
 
 // jwtTokenOptions carries what the ID token has to say about the authorization request
 type jwtTokenOptions struct {
+	MfaSession string
 	// AuthTime is when the user last entered credentials, 0 if unknown
 	AuthTime int64
 	// Code is the authorization code returned together with the ID token, for its c_hash
@@ -609,6 +610,14 @@ func generateJwtToken(application *Application, user *User, provider string, sig
 }
 
 func generateJwtTokenWithOptions(application *Application, user *User, provider string, signinMethod string, nonce string, scope string, resource string, host string, options jwtTokenOptions) (string, string, string, string, error) {
+	if required, err := IsGroupMfaRequired(user); err != nil {
+		return "", "", "", "", err
+	} else if required && user.TotpSecret == "" {
+		return "", "", "", "", fmt.Errorf("OneAccount authenticator enrolment required")
+	}
+	if !MfaSessionAuthorized(user, options.MfaSession) {
+		return "", "", "", "", fmt.Errorf("OneAccount MFA verification required")
+	}
 	nowTime := time.Now()
 	expireTime := nowTime.Add(time.Duration(application.ExpireInHours * float64(time.Hour)))
 	refreshExpireTime := nowTime.Add(time.Duration(application.RefreshExpireInHours * float64(time.Hour)))

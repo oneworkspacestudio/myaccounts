@@ -1,0 +1,12 @@
+import {createElement as h,type ReactNode} from 'react';
+import {QRCodeSVG} from 'qrcode.react';
+type P={children?:ReactNode;[key:string]:any};
+export const Page=({children}:P)=>h('div',{className:'mx-auto max-w-xl py-6'},children);
+export const Stack=({children}:P)=>h('div',{className:'space-y-5'},children);
+export const Card=({children}:P)=>h('section',{className:'space-y-4 rounded-xl border bg-card p-6'},children);
+export const Heading=({level,children}:P)=>h(level===1?'h1':'h2',{className:level===1?'text-2xl font-semibold':'text-lg font-semibold'},children);
+export const Text=({children}:P)=>h('p',{className:'whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground'},children);
+export const Alert=({role,children}:P)=>h('div',{role,className:'rounded-lg border p-3 text-sm'},children);
+export const Input=({name,label,type,autocomplete}:P)=>h('label',{className:'block space-y-2 text-sm font-medium'},label,h('input',{name,type:type||'text',autoComplete:autocomplete,spellCheck:false,className:'block w-full rounded-md border bg-background p-3',maxLength:256}));
+export const Button=({children,onClick,variant}:P)=>h('button',{type:'button',onClick,className:'mr-2 rounded-md px-4 py-3 text-sm font-medium '+(variant==='danger'?'bg-destructive text-destructive-foreground':variant==='secondary'?'border':'bg-primary text-primary-foreground')},children);
+export const Section=({variant,value}:P)=>variant==='qr'?h('div',{className:'flex justify-center rounded-lg bg-white p-4'},h(QRCodeSVG,{value,size:220,marginSize:4})):variant==='key'?h('details',{},h('summary',{className:'cursor-pointer text-sm'},'Enter setup key manually'),h('code',{className:'block break-all p-3'},value)):h('pre',{className:'overflow-x-auto rounded-md border p-3 text-sm',tabIndex:0},value);

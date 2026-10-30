@@ -35,7 +35,7 @@ Powered by Casdoor, with an embedded web UI and SQLite database.
 ## Download and run
 
 Download the latest candidate from [organization releases](https://github.com/oneworkspacestudio/myaccounts/releases).
-The callback-binding update is described in [preview-20261020.1](docs/preview-20261020.1.md).
+The OneAccount MFA update is described in [preview-20261030.1](docs/preview-20261030.1.md).
 The release contains:
 
 | File | Who needs it |

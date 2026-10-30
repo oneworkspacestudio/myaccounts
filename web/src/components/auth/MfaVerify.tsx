@@ -111,7 +111,7 @@ export function MfaVerify({formValues, authParams, mfaProps, application, onSucc
           {i18next.t("forget:Verify")}
         </Button>
         <Button variant="link" className="w-full" onClick={() => setUseRecovery(false)}>
-          {i18next.t("mfa:Have problems?")} {i18next.t("mfa:Use SMS verification code")}
+          {selected?.mfaType === TotpMfaType ? "Use One Authenticator" : i18next.t("mfa:Use SMS verification code")}
         </Button>
       </div>
     );
@@ -136,7 +136,7 @@ export function MfaVerify({formValues, authParams, mfaProps, application, onSucc
       };
     }
     return {
-      prompt: i18next.t("mfa:You have enabled Multi-Factor Authentication, please enter the TOTP code"),
+      prompt: "Enter the 6-digit code from One Authenticator.",
       placeholder: i18next.t("code:Enter your code"),
     };
   })();
@@ -181,7 +181,7 @@ export function MfaVerify({formValues, authParams, mfaProps, application, onSucc
         </>
       )}
 
-      <div className="flex items-center gap-2">
+      <div className={selected?.mfaType === TotpMfaType ? "hidden" : "flex items-center gap-2"}>
         <Checkbox id="mfa-remember" checked={remember} onCheckedChange={(v) => setRemember(v === true)} />
         <Label htmlFor="mfa-remember" className="text-sm font-normal">
           {i18next.t("mfa:Remember this account for {hour} hours").replace("{hour}", selected?.mfaRememberInHours)}

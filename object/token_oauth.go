@@ -588,7 +588,7 @@ func GetTokenByUserWithAuth(application *Application, user *User, scope string, 
 		return nil, err
 	}
 
-	options := jwtTokenOptions{AuthTime: authTime, WithAtHash: withAtHash}
+	options := jwtTokenOptions{MfaSession: sessionId, AuthTime: authTime, WithAtHash: withAtHash}
 	accessToken, refreshToken, idToken, tokenName, err := generateJwtTokenWithOptions(application, user, "", "", nonce, scope, "", host, options)
 	if err != nil {
 		return nil, err

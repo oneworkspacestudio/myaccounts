@@ -15,7 +15,9 @@
 package object
 
 import (
+	"crypto/subtle"
 	"fmt"
+	"time"
 
 	"github.com/casdoor/casdoor/util"
 )
@@ -74,6 +76,9 @@ func GetMfaUtil(mfaType string, config *MfaProps) MfaInterface {
 const mfaErrorKey = "mfa"
 
 func VerifyMfaWithLimit(user *User, verify func() error, lang string) error {
+	if err := MfaAttempt(user); err != nil {
+		return err
+	}
 	err := checkVerifyCodeErrorTimes(user, mfaErrorKey, lang)
 	if err != nil {
 		return err
@@ -81,6 +86,7 @@ func VerifyMfaWithLimit(user *User, verify func() error, lang string) error {
 
 	err = verify()
 	if err != nil {
+		_ = MfaAudit(user, "verification_failed")
 		if limitErr := recordVerifyCodeErrorInfo(user, mfaErrorKey, lang); limitErr != nil {
 			return fmt.Errorf("%s, %s", err.Error(), limitErr.Error())
 		}
@@ -99,7 +105,7 @@ func MfaRecover(user *User, recoveryCode string) error {
 	}
 
 	for _, code := range user.RecoveryCodes {
-		if code == recoveryCode {
+		if subtle.ConstantTimeCompare([]byte(code), []byte(RecoveryDigest(user, recoveryCode))) == 1 {
 			hit = true
 			user.RecoveryCodes = util.DeleteVal(user.RecoveryCodes, code)
 			break
@@ -117,7 +123,7 @@ func MfaRecover(user *User, recoveryCode string) error {
 		return err
 	}
 
-	return nil
+	return MfaAudit(user, "recovery_code_used")
 }
 
 func GetAllMfaProps(user *User, masked bool) []*MfaProps {
@@ -182,7 +188,7 @@ func (user *User) GetMfaProps(mfaType string, masked bool) *MfaProps {
 		if masked {
 			mfaProps.Secret = ""
 		} else {
-			mfaProps.Secret = user.TotpSecret
+			mfaProps.Secret, _ = DecryptMfaSecret(user.TotpSecret, user.Id)
 		}
 	} else if mfaType == RadiusType {
 		if !user.MfaRadiusEnabled {
@@ -229,6 +235,15 @@ func (user *User) GetMfaProps(mfaType string, masked bool) *MfaProps {
 }
 
 func DisabledMultiFactorAuth(user *User) error {
+	oldSecret := user.TotpSecret
+	sessions, err := GetUserSessions(user.Owner, user.Name)
+	if err != nil {
+		return err
+	}
+	ids := []string{}
+	for _, s := range sessions {
+		ids = append(ids, s.SessionId...)
+	}
 	user.PreferredMfaType = ""
 	user.RecoveryCodes = []string{}
 	user.MfaPhoneEnabled = false
@@ -240,11 +255,35 @@ func DisabledMultiFactorAuth(user *User) error {
 	user.MfaPushEnabled = false
 	user.MfaPushReceiver = ""
 	user.MfaPushProvider = ""
-
-	_, err := updateUser(user.GetId(), user, []string{"preferred_mfa_type", "recovery_codes", "mfa_phone_enabled", "mfa_email_enabled", "totp_secret", "mfa_radius_enabled", "mfa_radius_username", "mfa_radius_provider", "mfa_push_enabled", "mfa_push_receiver", "mfa_push_provider"})
-	if err != nil {
+	tx := ormer.Engine.NewSession()
+	defer tx.Close()
+	if err = tx.Begin(); err != nil {
 		return err
 	}
+	defer tx.Rollback()
+	if n, e := tx.Where("owner=? AND name=? AND totp_secret=?", user.Owner, user.Name, oldSecret).Cols("preferred_mfa_type", "recovery_codes", "mfa_phone_enabled", "mfa_email_enabled", "totp_secret", "mfa_radius_enabled", "mfa_radius_username", "mfa_radius_provider", "mfa_push_enabled", "mfa_push_receiver", "mfa_push_provider").Update(user); e != nil {
+		return e
+	} else if n != 1 {
+		return fmt.Errorf("credential changed; sign in again")
+	}
+	if _, err = tx.Where("organization=? AND "+quoteColumn("user")+"=?", user.Owner, user.Name).Cols("expires_in").Update(&Token{ExpiresIn: 0}); err != nil {
+		return err
+	}
+	if _, err = tx.Where("owner=? AND name=?", user.Owner, user.Name).Delete(&Session{}); err != nil {
+		return err
+	}
+	for _, table := range []string{"oneaccount_mfa_proof", "oneaccount_mfa_pending", "oneaccount_mfa_device"} {
+		if _, err = tx.Exec("DELETE FROM "+table+" WHERE user_id=?", user.Id); err != nil {
+			return err
+		}
+	}
+	if _, err = tx.Exec("INSERT INTO oneaccount_mfa_audit(user_id,event,created) VALUES(?,?,?)", user.Id, "disabled", time.Now().Unix()); err != nil {
+		return err
+	}
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+	DeleteBeegoSession(ids)
 	return nil
 }
 

@@ -74,7 +74,7 @@ func Backup(dir, output, password string) error {
 		if filepath.ToSlash(rel) == "secrets/control.dpapi" || filepath.ToSlash(rel) == "secrets/setup-url.dpapi" || filepath.ToSlash(rel) == "secrets/email-setup-url.dpapi" || filepath.ToSlash(rel) == "secrets/backup-passphrase.dpapi" || filepath.ToSlash(rel) == "secrets/migration-key.dpapi" {
 			return nil
 		}
-		if filepath.ToSlash(rel) == "secrets/tunnel.dpapi" || filepath.ToSlash(rel) == "secrets/email-relay.dpapi" {
+		if filepath.ToSlash(rel) == "secrets/oneaccount-mfa.dpapi" || filepath.ToSlash(rel) == "secrets/tunnel.dpapi" || filepath.ToSlash(rel) == "secrets/email-relay.dpapi" {
 			b, e := os.ReadFile(path)
 			if e != nil {
 				return e
@@ -216,7 +216,7 @@ func Restore(input, dir, password string) error {
 	if e = CheckDatabase(filepath.Join(stage, "users.db")); e != nil {
 		return e
 	}
-	for _, name := range []string{"tunnel", "email-relay"} {
+	for _, name := range []string{"tunnel", "email-relay", "oneaccount-mfa"} {
 		if b, e := os.ReadFile(filepath.Join(stage, "secrets", name+".portable")); e == nil {
 			protected, e := Protect(b)
 			if e != nil {

@@ -66,6 +66,9 @@ func (c *ApiController) checkVerifyCodeOrOrgMasterCode(user *object.User, dest s
 }
 
 func (c *ApiController) verifyMfaPasscode(user *object.User, mfaUtil object.MfaInterface, passcode string) error {
+	if _, ok := mfaUtil.(*object.TotpMfa); ok {
+		return object.VerifyTotpOnce(user, passcode, c.GetAcceptLanguage())
+	}
 	passed, err := c.checkOrgMasterVerificationCode(user, passcode)
 	if err != nil || passed {
 		return err

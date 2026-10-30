@@ -31,6 +31,10 @@ import (
 // @Success 200 {object} controllers.Response The Response object
 // @router /mfa/setup/initiate [post]
 func (c *ApiController) MfaSetupInitiate() {
+	if c.Ctx.Request.Form.Get("mfaType") == object.TotpType {
+		c.oneAccountMfaBegin()
+		return
+	}
 	owner := c.Ctx.Request.Form.Get("owner")
 	name := c.Ctx.Request.Form.Get("name")
 	mfaType := c.Ctx.Request.Form.Get("mfaType")
@@ -94,6 +98,10 @@ func (c *ApiController) MfaSetupInitiate() {
 // @Success 200 {object} controllers.Response The Response object
 // @router /mfa/setup/verify [post]
 func (c *ApiController) MfaSetupVerify() {
+	if c.Ctx.Request.Form.Get("mfaType") == object.TotpType {
+		c.oneAccountMfaVerify()
+		return
+	}
 	mfaType := c.Ctx.Request.Form.Get("mfaType")
 	passcode := c.Ctx.Request.Form.Get("passcode")
 	secret := c.Ctx.Request.Form.Get("secret")
@@ -216,6 +224,10 @@ func (c *ApiController) checkMfaSetupDest(user *object.User, mfaType string) boo
 // @Success 200 {object} controllers.Response The Response object
 // @router /mfa/setup/enable [post]
 func (c *ApiController) MfaSetupEnable() {
+	if c.Ctx.Request.Form.Get("mfaType") == object.TotpType {
+		c.oneAccountMfaEnable()
+		return
+	}
 	owner := c.Ctx.Request.Form.Get("owner")
 	name := c.Ctx.Request.Form.Get("name")
 	mfaType := c.Ctx.Request.Form.Get("mfaType")
@@ -325,6 +337,9 @@ func (c *ApiController) MfaSetupEnable() {
 // @Success 200 {object} controllers.Response The Response object
 // @router /delete-mfa/ [post]
 func (c *ApiController) DeleteMfa() {
+	if !c.oneAccountMfaDestructiveProof() {
+		return
+	}
 	owner := c.Ctx.Request.Form.Get("owner")
 	name := c.Ctx.Request.Form.Get("name")
 	userId := util.GetId(owner, name)
@@ -345,6 +360,7 @@ func (c *ApiController) DeleteMfa() {
 		return
 	}
 
+	c.ClearUserSession()
 	c.ResponseOk(object.GetAllMfaProps(user, true))
 }
 
@@ -358,6 +374,9 @@ func (c *ApiController) DeleteMfa() {
 // @Success 200 {object} controllers.Response The Response object
 // @router /set-preferred-mfa [post]
 func (c *ApiController) SetPreferredMfa() {
+	if !c.oneAccountMfaDestructiveProof() {
+		return
+	}
 	mfaType := c.Ctx.Request.Form.Get("mfaType")
 	owner := c.Ctx.Request.Form.Get("owner")
 	name := c.Ctx.Request.Form.Get("name")

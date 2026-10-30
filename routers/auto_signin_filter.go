@@ -124,6 +124,7 @@ func AutoSigninFilter(ctx *context.Context) {
 		} else {
 			userId = util.GetId(token.Organization, token.User)
 		}
+		ctx.Input.SetData("oneAccountVerifiedToken", userId)
 		setSessionSigninToken(ctx, userId, token)
 		setSessionUser(ctx, userId)
 		setSessionOidc(ctx, token.Scope, application.ClientId)

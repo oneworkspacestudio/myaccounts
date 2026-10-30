@@ -80,7 +80,11 @@ func (mfa *TotpMfa) Enable(user *User) error {
 	columns := []string{"recovery_codes", "preferred_mfa_type", "totp_secret"}
 
 	user.RecoveryCodes = append(user.RecoveryCodes, mfa.RecoveryCodes...)
-	user.TotpSecret = mfa.Secret
+	var encryptErr error
+	user.TotpSecret, encryptErr = EncryptMfaSecret(mfa.Secret, user.Id)
+	if encryptErr != nil {
+		return encryptErr
+	}
 	if user.PreferredMfaType == "" {
 		user.PreferredMfaType = mfa.MfaType
 	}

@@ -525,6 +525,26 @@ func ApiFilter(ctx *context.Context) {
 	}
 
 	subOwner, subName := getSubject(ctx)
+	if subOwner != "anonymous" && subOwner != "app" {
+		id := util.GetId(subOwner, subName)
+		user, e := object.GetUser(id)
+		tokenUser, _ := ctx.Input.GetData("oneAccountVerifiedToken").(string)
+		if e != nil {
+			denyRequest(ctx)
+			return
+		}
+		if user != nil && tokenUser != id && !object.MfaSessionAuthorized(user, ctx.Input.CruSession.SessionID(stdcontext.Background())) {
+			if credential, _ := ctx.Input.GetData(requestCredentialUserKey).(string); credential != "" {
+				denyRequest(ctx)
+				return
+			}
+			if err := clearSessionOfToken(ctx); err != nil {
+				denyRequest(ctx)
+				return
+			}
+			subOwner, subName = "anonymous", "anonymous"
+		}
+	}
 	// stash current user info into request context for controllers
 	username := ""
 	if !(subOwner == "anonymous" && subName == "anonymous") {

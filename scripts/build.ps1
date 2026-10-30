@@ -34,6 +34,7 @@ try {
    Remove-Item -LiteralPath $output -Recurse -Force
   }
   Copy-Item -LiteralPath (Join-Path $WebBuild 'build') -Destination $output -Recurse
+  Copy-Item -LiteralPath (Join-Path $WebBuild 'src/components/auth/mfa/OneAccountSecurityScreen.tsx') -Destination (Join-Path $canonicalWeb 'src/components/auth/mfa/OneAccountSecurityScreen.tsx')
  }
  $env:CGO_ENABLED='0'
  & $Go test ./internal/mailrelay ./internal/mailservice ./internal/portable ./cred . ./cmd/myaccounts-mail

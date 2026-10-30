@@ -208,16 +208,8 @@ export default function UserEditPage({self}: {self?: boolean} = {}) {
 
   const deleteMfa = () => {
     setRemovingMfa(true);
-    return MfaBackend.DeleteMfa({owner: user.owner, name: user.name})
-      .then((res: any) => {
-        if (res.status === "ok") {
-          Setting.showMessage("success", i18next.t("general:Successfully deleted"));
-          setMfaItems(res.data ?? []);
-        } else {
-          Setting.showMessage("error", i18next.t("general:Failed to delete"));
-        }
-      })
-      .finally(() => setRemovingMfa(false));
+    window.location.assign('/mfa/setup?mfaType=app');
+    return Promise.resolve();
   };
 
   const verifyIdentification = () => {
@@ -1002,7 +994,7 @@ export default function UserEditPage({self}: {self?: boolean} = {}) {
             )}
           </div>
           <div className="flex gap-2">
-            {mfaItems.some((item: any) => item.enabled) ? (
+            {isSelf && mfaItems.some((item: any) => item.enabled) ? (
               <ConfirmButton
                 variant="destructive"
                 size="sm"

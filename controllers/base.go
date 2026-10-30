@@ -311,6 +311,25 @@ func (c *ApiController) SetSessionData(s *SessionData) {
 
 func (c *ApiController) setMfaUserSession(userId string) {
 	c.SetSession(object.MfaSessionUserId, userId)
+	if userId != "" {
+		user, err := object.GetUser(userId)
+		if err != nil || user == nil {
+			return
+		}
+		id, err := object.BeginMfaChallenge(user)
+		if err != nil {
+			return
+		}
+		c.SetSession("oneAccountMfaChallenge", id)
+		appName := c.Ctx.Input.Query("application")
+		clientID := c.Ctx.Input.Query("clientId")
+		// Login JSON is already decoded by the controller, so bind at checkMfaEnable below.
+		_ = appName
+		_ = clientID
+	} else {
+		c.DelSession("oneAccountMfaChallenge")
+		c.DelSession("oneAccountMfaApplication")
+	}
 }
 
 func (c *ApiController) getMfaUserSession() string {

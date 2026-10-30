@@ -214,8 +214,8 @@ type User struct {
 
 	WebauthnCredentials []webauthn.Credential `xorm:"webauthnCredentials blob" json:"webauthnCredentials"`
 	PreferredMfaType    string                `xorm:"varchar(100)" json:"preferredMfaType"`
-	RecoveryCodes       []string              `xorm:"mediumtext" json:"recoveryCodes"`
-	TotpSecret          string                `xorm:"varchar(100)" json:"totpSecret"`
+	RecoveryCodes       []string              `xorm:"mediumtext" json:"-"`
+	TotpSecret          string                `xorm:"varchar(100)" json:"-"`
 	MfaPhoneEnabled     bool                  `json:"mfaPhoneEnabled"`
 	MfaEmailEnabled     bool                  `json:"mfaEmailEnabled"`
 	MfaRadiusEnabled    bool                  `json:"mfaRadiusEnabled"`
@@ -819,8 +819,8 @@ var userSelfColumns = []string{
 	"owner", "display_name", "avatar", "first_name", "last_name",
 	"location", "address", "addresses", "country_code", "region", "language", "affiliation", "title", "id_card_type", "id_card", "homepage", "bio", "tag", "language", "gender", "birthday", "education", "score", "karma", "ranking", "signup_application", "register_type", "register_source",
 	"hash", "is_default_avatar", "properties", "webauthnCredentials", "mfa_items", "last_change_password_time", "managedAccounts", "face_ids", "mfaAccounts",
-	"signin_wrong_times", "last_signin_wrong_time", "groups", "mfa_phone_enabled", "mfa_email_enabled",
-	"type", "need_update_password", "ip_whitelist", "mfa_remember_deadline",
+	"signin_wrong_times", "last_signin_wrong_time", "groups",
+	"type", "need_update_password", "ip_whitelist",
 	"cart", "application_scopes",
 }
 
