@@ -41,3 +41,15 @@ Canonical app I:/Projects/one-authenticator; task builds/evidence in sibling
 one-authenticator-20261030 tooling. Only named C task scratch is disposable.
 Owner C:/tmp/workspace must only be updated through backed supported path after
 managed fresh/upgrade/recovery and public release/channel evidence.
+
+Provider preview-20261030.1 public with exact executable eb941eaf... and source
+926137b. Authenticator preview2 fixes manual-save camera cleanup; all frozen PWA
+crypto/offline/QR/manual cases and SW1→2 encrypted-vault preservation pass. Actual
+35-app managed fresh install and108→109 protected upgrade passed central session
+revocation, OTP access to Drive/Docs/Photos, rollback/reapply and original-password
+SSO. Suite109 signed publication is in progress; owner installation remains pending
+until immutable asset/public-channel verification. No owner fixture or enrollment.
+Recent-password server proof lasts five minutes (UI asks on each action); it is
+not a one-use password nonce. Synthetic resume must retain the actual test owner
+password: Suite Secrets.AdminPassword is a separate service credential.
+Go runtime license supplement added; original published assets remain immutable.
